@@ -6,9 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/masterminds/semver"
-
 	"github.com/alecthomas/kingpin"
+	"github.com/masterminds/semver"
 )
 
 var (
