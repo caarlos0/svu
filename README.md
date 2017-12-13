@@ -8,10 +8,9 @@ makefile something like:
 
 ```Makefile
 major:
-  tag=$(svu major)
-  git tag $tag
-  git push $tag
-  goreleaser --rm-dist
+	git tag $$(svu major)
+	git push --tags
+	goreleaser --rm-dist
 ```
 
 ### Install
