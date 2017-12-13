@@ -19,3 +19,11 @@ major:
 ```sh
 go get github.com/caarlos0/svu
 ```
+
+or
+
+```sh
+brew install caarlos0/tap/svu
+```
+
+Or download one from the releases tab and install manually.
