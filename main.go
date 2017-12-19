@@ -17,9 +17,10 @@ var (
 		Default(".").
 		Short('p').
 		ExistingDir()
-	major = app.Command("major", "new major version")
-	minor = app.Command("minor", "new minor version")
-	patch = app.Command("patch", "new patch version")
+	major   = app.Command("major", "new major version")
+	minor   = app.Command("minor", "new minor version").Alias("m")
+	patch   = app.Command("patch", "new patch version").Alias("p")
+	nothing = app.Command("current", "prints current version").Alias("c").Default()
 )
 
 func main() {
@@ -46,6 +47,8 @@ func main() {
 		next = current.IncMinor()
 	case patch.FullCommand():
 		next = current.IncPatch()
+	case nothing.FullCommand():
+		next = *current
 	}
 	fmt.Printf("%s%s\n", prefix, next.String())
 }
