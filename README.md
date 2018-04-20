@@ -25,4 +25,10 @@ or
 brew install caarlos0/tap/svu
 ```
 
+or
+
+```sh
+curl -sfL https://install.goreleaser.com/github.com/caarlos0/svu.sh | bash -s -- -b /usr/local/bin
+```
+
 Or download one from the releases tab and install manually.
