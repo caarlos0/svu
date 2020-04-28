@@ -8,8 +8,8 @@ build:
     - linux
   goarch:
     - amd64
-brew:
-  github:
+brews:
+- github:
     owner: caarlos0
     name: homebrew-tap
   folder: Formula
