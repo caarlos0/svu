@@ -7,16 +7,28 @@ get the next tag based on your git log!
 
 ## Example usage:
 
-##### `svu`
+### `svu`
 
-> alias: `svu next` and `svu n`
+Based on the log between the latest tag and `HEAD`, prints the next tag.
+
+> aliases: `svu next` and `svu n`
 
 ```sh
 $ svu
 v1.3.0
 ```
 
-##### `svu current`
+#### Commit messages vs what they do:
+
+| Commit message | Tag increase |
+|---|---|
+| `fix: fixed something` | Patch |
+| `feat: added new button to do X` | Minor |
+| `fix: fixed thing xyz`<br><br>`BREAKING CHANGE: this will break users because of blah` | Major |
+
+### `svu current`
+
+Prints the latest tag.
 
 > alias: `svu c`
 
@@ -25,14 +37,18 @@ $ svu current
 v1.2.3
 ```
 
-##### `svu major`
+### `svu major`
+
+Increases the major of the latest tag and prints it.
 
 ```sh
 $ svu major
 v2.0.0
 ```
 
-##### `svu minor`
+### `svu minor`
+
+Increases the minor of the latest tag and prints it.
 
 > alias: `svu m`
 
@@ -41,7 +57,9 @@ $ svu minor
 v1.3.0
 ```
 
-##### `svu patch`
+### `svu patch`
+
+Increases the patch of the latest tag and prints it.
 
 > alias: `svu p`
 
