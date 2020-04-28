@@ -1,19 +1,56 @@
 # svu
 
-Semantic Version Util is a tool to increase the major/minor/patch parts
-of semantic versions.
+Semantic Version Util is a tool to manage semantic versions at ease!
 
-The idea is to use it in automated scripts, so you can have in your
-makefile something like:
+You can print the current version, increase patch/minor/major manually or just
+get the next tag based on your git log!
 
-```Makefile
-major:
-	git tag $$(svu major)
-	git push --tags
-	goreleaser --rm-dist
+## Example usage:
+
+##### `svu`
+
+> alias: `svu next` and `svu n`
+
+```sh
+$ svu
+v1.3.0
 ```
 
-### Install
+##### `svu current`
+
+> alias: `svu c`
+
+```sh
+$ svu current
+v1.2.3
+```
+
+##### `svu major`
+
+```sh
+$ svu major
+v2.0.0
+```
+
+##### `svu minor`
+
+> alias: `svu m`
+
+```sh
+$ svu minor
+v1.3.0
+```
+
+##### `svu patch`
+
+> alias: `svu p`
+
+```sh
+$ svu patch
+v1.2.4
+```
+
+## Install
 
 ```sh
 go get github.com/caarlos0/svu
