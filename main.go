@@ -14,11 +14,11 @@ import (
 var (
 	version    = "dev"
 	app        = kingpin.New("svu", "semantic version util")
-	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n")
+	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
 	majorCmd   = app.Command("major", "new major version")
 	minorCmd   = app.Command("minor", "new minor version").Alias("m")
 	patchCmd   = app.Command("patch", "new patch version").Alias("p")
-	currentCmd = app.Command("current", "prints current version").Alias("c").Default()
+	currentCmd = app.Command("current", "prints current version").Alias("c")
 )
 
 func main() {
