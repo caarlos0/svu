@@ -3,24 +3,22 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/alecthomas/kingpin"
+	"github.com/caarlos0/svu/internal/git"
 	"github.com/masterminds/semver"
 )
 
 var (
-	version = "dev"
-	app     = kingpin.New("svu", "semantic version util")
-	repo    = app.Flag("path", "git repository path").
-		Default(".").
-		Short('p').
-		ExistingDir()
-	major   = app.Command("major", "new major version")
-	minor   = app.Command("minor", "new minor version").Alias("m")
-	patch   = app.Command("patch", "new patch version").Alias("p")
-	nothing = app.Command("current", "prints current version").Alias("c").Default()
+	version    = "dev"
+	app        = kingpin.New("svu", "semantic version util")
+	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n")
+	majorCmd   = app.Command("major", "new major version")
+	minorCmd   = app.Command("minor", "new minor version").Alias("m")
+	patchCmd   = app.Command("patch", "new patch version").Alias("p")
+	currentCmd = app.Command("current", "prints current version").Alias("c").Default()
 )
 
 func main() {
@@ -30,35 +28,66 @@ func main() {
 	app.HelpFlag.Short('h')
 	var cmd = kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	tag, err := tagFromRepo(*repo)
-	app.FatalIfError(err, "failed to get current tag for repo %s", *repo)
+	tag, err := getTag()
+	app.FatalIfError(err, "failed to get current tag for repo")
+
 	current, err := semver.NewVersion(tag)
 	app.FatalIfError(err, "version %s is not semantic", tag)
+
 	var prefix string
 	if strings.HasPrefix(tag, "v") {
 		prefix = "v"
 	}
 
-	var next semver.Version
+	var result semver.Version
 	switch cmd {
-	case major.FullCommand():
-		next = current.IncMajor()
-	case minor.FullCommand():
-		next = current.IncMinor()
-	case patch.FullCommand():
-		next = current.IncPatch()
-	case nothing.FullCommand():
-		next = *current
+	case nextCmd.FullCommand():
+		result = findNext(current, tag)
+	case majorCmd.FullCommand():
+		result = current.IncMajor()
+	case minorCmd.FullCommand():
+		result = current.IncMinor()
+	case patchCmd.FullCommand():
+		result = current.IncPatch()
+	case currentCmd.FullCommand():
+		result = *current
 	}
-	fmt.Printf("%s%s\n", prefix, next.String())
+	fmt.Printf("%s%s\n", prefix, result.String())
 }
 
-func tagFromRepo(path string) (string, error) {
-	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
-	cmd.Dir = path
-	bts, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
+var breaking = regexp.MustCompile("(?im).*breaking change:.*")
+var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
+var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
+
+func findNext(current *semver.Version, tag string) semver.Version {
+	log, err := getChangelog(tag)
+	app.FatalIfError(err, "failed to get changelog")
+
+	if breaking.MatchString(log) {
+		return current.IncMajor()
 	}
-	return strings.Split(string(bts), "\n")[0], nil
+
+	if feature.MatchString(log) {
+		return current.IncMinor()
+	}
+
+	if patch.MatchString(log) {
+		return current.IncPatch()
+	}
+
+	return *current
+}
+
+func getTag() (string, error) {
+	return git.Clean(git.Run("describe", "--tags", "--abbrev=0"))
+}
+
+func getChangelog(tag string) (string, error) {
+	return gitLog(fmt.Sprintf("tags/%s..HEAD", tag))
+}
+
+func gitLog(refs ...string) (string, error) {
+	var args = []string{"log", "--no-decorate", "--no-color"}
+	args = append(args, refs...)
+	return git.Run(args...)
 }
