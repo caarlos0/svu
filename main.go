@@ -56,6 +56,7 @@ func main() {
 }
 
 var breaking = regexp.MustCompile("(?im).*breaking change:.*")
+var breakingBang = regexp.MustCompile("(?im).*(feat|fix|build|chore|ci|docs|style|refactor|perf|test)(\\(.*\\))?!:.*")
 var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
 var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
 
@@ -63,7 +64,7 @@ func findNext(current *semver.Version, tag string) semver.Version {
 	log, err := getChangelog(tag)
 	app.FatalIfError(err, "failed to get changelog")
 
-	if breaking.MatchString(log) {
+	if breaking.MatchString(log) || breakingBang.MatchString(log) {
 		return current.IncMajor()
 	}
 
