@@ -56,7 +56,7 @@ func main() {
 }
 
 var breaking = regexp.MustCompile("(?im).*breaking change:.*")
-var breakingBang = regexp.MustCompile("(?im).*(feat|fix|build|chore|ci|docs|style|refactor|perf|test)(\\(.*\\))?!:.*")
+var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!:.*")
 var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
 var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
 
