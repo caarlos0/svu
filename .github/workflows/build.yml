@@ -31,19 +31,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       -
-        name: Make Setup
+        name: Build and Test
         run: |
-          make setup
-      -
-        name: Make CI
-        run: |
-          make ci
-      -
-        name: Upload coverage
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.txt
+          go mod tidy
+          go test -v ./...
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
