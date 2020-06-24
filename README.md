@@ -1,5 +1,9 @@
 # svu
 
+[![Build Status](https://img.shields.io/github/workflow/status/caarlos0/svu/build?style=for-the-badge)](https://github.com/caarlos0/svu/actions?workflow=build)
+[![Coverage Status](https://img.shields.io/codecov/c/gh/caarlos0/svu.svg?logo=codecov&style=for-the-badge)](https://codecov.io/gh/caarlos0/svu)
+[![](http://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](http://godoc.org/github.com/caarlos0/svu)
+
 Semantic Version Util is a tool to manage semantic versions at ease!
 
 You can print the current version, increase patch/minor/major manually or just
@@ -70,6 +74,19 @@ Increases the patch of the latest tag and prints it.
 $ svu patch
 v1.2.4
 ```
+
+## Creating tags
+
+The idea is that `svu` will just print things, so its safe to run at any time.
+
+You can create tags by wrapping it in an alias. For example, I have one like
+this:
+
+```bash
+alias gtn='git tag $(svu next)'
+```
+
+So, whenever I want to create a tag, I just run `gtn`.
 
 ## Install
 
