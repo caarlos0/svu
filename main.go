@@ -88,10 +88,7 @@ func unsetBuild(current *semver.Version) *semver.Version {
 }
 
 func unsetMetadata(current *semver.Version) *semver.Version {
-	newV := unsetBuild(current)
-	newV = unsetPreRelease(newV)
-
-	return newV
+	return unsetBuild(unsetPreRelease(current))
 }
 
 func findNext(current *semver.Version, tag string) semver.Version {
