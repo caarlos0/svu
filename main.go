@@ -22,6 +22,7 @@ var (
 	metadata   = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
 	preRelease = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build      = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
+	tagMode    = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
 )
 
 func main() {
@@ -111,6 +112,15 @@ func findNext(current *semver.Version, tag string) semver.Version {
 }
 
 func getTag() (string, error) {
+	if *tagMode == "all-branches" {
+		tagHash, err := git.Clean(git.Run("rev-list", "--tags", "--max-count=1"))
+		if err != nil {
+			return "", err
+		}
+
+		return git.Clean(git.Run("describe", "--tags", tagHash))
+	}
+
 	return git.Clean(git.Run("describe", "--tags", "--abbrev=0"))
 }
 

@@ -73,6 +73,15 @@ $ svu patch
 v1.2.4
 ```
 
+## Tag mode
+
+By default `svu` will get the latest tag from the current branch. Using the `--tag-mode` flag this behaviour can be altered:
+
+| Flag                        | Description                          | Git command used under the hood                            |
+| --------------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| `--tag-mode current-branch` | Get latest tag from current branch.  | `git describe --tags --abbrev=0`                           |
+| `--tag-mode all-branches`   | Get latest tag accross all branches. | `git describe --tags $(git rev-list --tags --max-count=1)` |
+
 ## Discarding pre-release and build metadata
 
 To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your comman dof choice with the following flags:
