@@ -22,14 +22,14 @@ v1.3.0
 
 #### Commit messages vs what they do:
 
-| Commit message | Tag increase |
-|---|---|
-| `fix: fixed something` | Patch |
-| `feat: added new button to do X` | Minor |
-| `fix: fixed thing xyz`<br><br>`BREAKING CHANGE: this will break users because of blah` | Major |
-| `fix!: fixed something` | Major |
-| `feat!: added blah` | Major |
-| `chore: foo` | Nothing |
+| Commit message                                                                         | Tag increase |
+| -------------------------------------------------------------------------------------- | ------------ |
+| `fix: fixed something`                                                                 | Patch        |
+| `feat: added new button to do X`                                                       | Minor        |
+| `fix: fixed thing xyz`<br><br>`BREAKING CHANGE: this will break users because of blah` | Major        |
+| `fix!: fixed something`                                                                | Major        |
+| `feat!: added blah`                                                                    | Major        |
+| `chore: foo`                                                                           | Nothing      |
 
 ### `svu current`
 
@@ -72,6 +72,10 @@ Increases the patch of the latest tag and prints it.
 $ svu patch
 v1.2.4
 ```
+
+## Discarding pre-release and build metadata
+
+To discard [pre-release](https://semver.org/#spec-item-9) and [build metadata](https://semver.org/#spec-item-10) information just run the command of your choice with the `--only-core-version` flag.
 
 ## Creating tags
 
