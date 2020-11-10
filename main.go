@@ -12,16 +12,16 @@ import (
 )
 
 var (
-	version      = "dev"
-	app          = kingpin.New("svu", "semantic version util")
-	nextCmd      = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
-	majorCmd     = app.Command("major", "new major version")
-	minorCmd     = app.Command("minor", "new minor version").Alias("m")
-	patchCmd     = app.Command("patch", "new patch version").Alias("p")
-	currentCmd   = app.Command("current", "prints current version").Alias("c")
-	noMetadata   = app.Flag("no-metadata", "discards pre-release and build metadata").Bool()
-	noPreRelease = app.Flag("no-pre-release", "discards pre-release metadata").Bool()
-	noBuild      = app.Flag("no-build", "discards build metadata").Bool()
+	version    = "dev"
+	app        = kingpin.New("svu", "semantic version util")
+	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
+	majorCmd   = app.Command("major", "new major version")
+	minorCmd   = app.Command("minor", "new minor version").Alias("m")
+	patchCmd   = app.Command("patch", "new patch version").Alias("p")
+	currentCmd = app.Command("current", "prints current version").Alias("c")
+	metadata   = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
+	preRelease = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
+	build      = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
 )
 
 func main() {
@@ -37,15 +37,15 @@ func main() {
 	current, err := semver.NewVersion(tag)
 	app.FatalIfError(err, "version %s is not semantic", tag)
 
-	if *noMetadata {
+	if !*metadata {
 		current = unsetMetadata(current)
 	}
 
-	if *noPreRelease {
+	if !*preRelease {
 		current = unsetPreRelease(current)
 	}
 
-	if *noBuild {
+	if !*build {
 		current = unsetBuild(current)
 	}
 
