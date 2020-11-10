@@ -1,6 +1,6 @@
 module github.com/caarlos0/svu
 
-go 1.14
+go 1.15
 
 require (
 	github.com/Masterminds/semver v1.5.0
