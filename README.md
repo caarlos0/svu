@@ -81,7 +81,7 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 | ------------------ | ---------------------------------------- | ---------------------------------------- |
 | `--no-metadata`    | Discards pre-release and build metadata. | `v1.0.0-alpha+build.f902daf` -> `v1.0.0` |
 | `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
-| `--no-build`       | Discards build metadata.                 | `v1.0.0build.f902daf` -> `v1.0.0`        |
+| `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
 
 ## Creating tags
 
