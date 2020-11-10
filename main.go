@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Masterminds/semver"
 	"github.com/alecthomas/kingpin"
 	"github.com/caarlos0/svu/internal/git"
-	"github.com/masterminds/semver"
 )
 
 var (
