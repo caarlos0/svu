@@ -22,14 +22,14 @@ v1.3.0
 
 #### Commit messages vs what they do:
 
-| Commit message | Tag increase |
-|---|---|
-| `fix: fixed something` | Patch |
-| `feat: added new button to do X` | Minor |
-| `fix: fixed thing xyz`<br><br>`BREAKING CHANGE: this will break users because of blah` | Major |
-| `fix!: fixed something` | Major |
-| `feat!: added blah` | Major |
-| `chore: foo` | Nothing |
+| Commit message                                                                         | Tag increase |
+| -------------------------------------------------------------------------------------- | ------------ |
+| `fix: fixed something`                                                                 | Patch        |
+| `feat: added new button to do X`                                                       | Minor        |
+| `fix: fixed thing xyz`<br><br>`BREAKING CHANGE: this will break users because of blah` | Major        |
+| `fix!: fixed something`                                                                | Major        |
+| `feat!: added blah`                                                                    | Major        |
+| `chore: foo`                                                                           | Nothing      |
 
 ### `svu current`
 
@@ -72,6 +72,16 @@ Increases the patch of the latest tag and prints it.
 $ svu patch
 v1.2.4
 ```
+
+## Discarding pre-release and build metadata
+
+To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your comman dof choice with the following flags:
+
+| Flag               | Description                              | Example                                  |
+| ------------------ | ---------------------------------------- | ---------------------------------------- |
+| `--no-metadata`    | Discards pre-release and build metadata. | `v1.0.0-alpha+build.f902daf` -> `v1.0.0` |
+| `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
+| `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
 
 ## Creating tags
 

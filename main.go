@@ -19,6 +19,9 @@ var (
 	minorCmd   = app.Command("minor", "new minor version").Alias("m")
 	patchCmd   = app.Command("patch", "new patch version").Alias("p")
 	currentCmd = app.Command("current", "prints current version").Alias("c")
+	metadata   = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
+	preRelease = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
+	build      = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
 )
 
 func main() {
@@ -33,6 +36,18 @@ func main() {
 
 	current, err := semver.NewVersion(tag)
 	app.FatalIfError(err, "version %s is not semantic", tag)
+
+	if !*metadata {
+		current = unsetMetadata(current)
+	}
+
+	if !*preRelease {
+		current = unsetPreRelease(current)
+	}
+
+	if !*build {
+		current = unsetBuild(current)
+	}
 
 	var prefix string
 	if strings.HasPrefix(tag, "v") {
@@ -59,6 +74,22 @@ var breaking = regexp.MustCompile("(?im).*breaking change:.*")
 var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!:.*")
 var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
 var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
+
+func unsetPreRelease(current *semver.Version) *semver.Version {
+	newV, _ := current.SetPrerelease("")
+
+	return &newV
+}
+
+func unsetBuild(current *semver.Version) *semver.Version {
+	newV, _ := current.SetMetadata("")
+
+	return &newV
+}
+
+func unsetMetadata(current *semver.Version) *semver.Version {
+	return unsetBuild(unsetPreRelease(current))
+}
 
 func findNext(current *semver.Version, tag string) semver.Version {
 	log, err := getChangelog(tag)
