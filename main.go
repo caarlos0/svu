@@ -72,9 +72,9 @@ func main() {
 }
 
 var breaking = regexp.MustCompile("(?im).*breaking change:.*")
-var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!:.*")
-var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
-var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
+var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!\\s*:.*")
+var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?\\s*:.*")
+var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?\\s*:.*")
 
 func unsetPreRelease(current *semver.Version) *semver.Version {
 	newV, _ := current.SetPrerelease("")
