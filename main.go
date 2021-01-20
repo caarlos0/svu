@@ -8,21 +8,24 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/alecthomas/kingpin"
+	"github.com/caarlos0/svu/internal/config"
 	"github.com/caarlos0/svu/internal/git"
 )
 
 var (
-	version    = "dev"
-	app        = kingpin.New("svu", "semantic version util")
-	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
-	majorCmd   = app.Command("major", "new major version")
-	minorCmd   = app.Command("minor", "new minor version").Alias("m")
-	patchCmd   = app.Command("patch", "new patch version").Alias("p")
-	currentCmd = app.Command("current", "prints current version").Alias("c")
-	metadata   = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
-	preRelease = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
-	build      = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
-	tagMode    = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
+	svuConfig        = config.Config{}
+	svuConfigPresent = false
+	version          = "dev"
+	app              = kingpin.New("svu", "semantic version util")
+	nextCmd          = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
+	majorCmd         = app.Command("major", "new major version")
+	minorCmd         = app.Command("minor", "new minor version").Alias("m")
+	patchCmd         = app.Command("patch", "new patch version").Alias("p")
+	currentCmd       = app.Command("current", "prints current version").Alias("c")
+	metadata         = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
+	preRelease       = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
+	build            = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
+	tagMode          = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
 )
 
 func main() {
@@ -55,6 +58,11 @@ func main() {
 		prefix = "v"
 	}
 
+	svuConfig, err = config.Load(".svu.yml")
+	if err == nil {
+		svuConfigPresent = true
+	}
+
 	var result semver.Version
 	switch cmd {
 	case nextCmd.FullCommand():
@@ -70,11 +78,6 @@ func main() {
 	}
 	fmt.Printf("%s%s\n", prefix, result.String())
 }
-
-var breaking = regexp.MustCompile("(?im).*breaking change:.*")
-var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!:.*")
-var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
-var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
 
 func unsetPreRelease(current *semver.Version) *semver.Version {
 	newV, _ := current.SetPrerelease("")
@@ -92,7 +95,31 @@ func unsetMetadata(current *semver.Version) *semver.Version {
 	return unsetBuild(unsetPreRelease(current))
 }
 
+func getTypes() ([]string, []string, []string) {
+	featureTypes := []string{"feat"}
+	fixTypes := []string{"fix"}
+
+	if svuConfigPresent {
+		if len(svuConfig.AdditionalFeatureTypes) > 0 {
+			featureTypes = append(featureTypes, svuConfig.AdditionalFeatureTypes...)
+		}
+		if len(svuConfig.AdditionalFixTypes) > 0 {
+			fixTypes = append(fixTypes, svuConfig.AdditionalFixTypes...)
+		}
+	}
+
+	allTypes := append(featureTypes, fixTypes...)
+
+	return fixTypes, featureTypes, allTypes
+}
+
 func findNext(current *semver.Version, tag string) semver.Version {
+	fixTypes, featureTypes, allTypes := getTypes()
+	breaking := regexp.MustCompile("(?im).*breaking change:.*")
+	breakingBang := regexp.MustCompile(fmt.Sprintf("(?im).*(%s)(\\(.*\\))?!:.*", strings.Join(allTypes, "|")))
+	feature := regexp.MustCompile(fmt.Sprintf("(?im).*(%s)(\\(.*\\))?:.*", strings.Join(featureTypes, "|")))
+	patch := regexp.MustCompile(fmt.Sprintf("(?im).*(%s)(\\(.*\\))?:.*", strings.Join(fixTypes, "|")))
+
 	log, err := getChangelog(tag)
 	app.FatalIfError(err, "failed to get changelog")
 

@@ -1,0 +1,5 @@
+additionalFeatureTypes:
+  - my-feature
+additionalFixTypes:
+  - docs
+  - refactor
