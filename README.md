@@ -73,6 +73,20 @@ $ svu patch
 v1.2.4
 ```
 
+## Additional types
+
+Additional types can be configured using a `.svu.yml` file:
+
+```yaml
+additionalFixTypes:
+  - docs
+  - refactor
+additionalFeatureTypes:
+  - perf
+```
+
+Right now `additionalFixTypes` and `additionalFeatureTypes` are supported.
+
 ## Tag mode
 
 By default `svu` will get the latest tag from the current branch. Using the `--tag-mode` flag this behaviour can be altered:
