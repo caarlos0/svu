@@ -108,7 +108,7 @@ func findNext(current *semver.Version, tag string) semver.Version {
 		return current.IncPatch()
 	}
 
-	return *current
+	return current.IncPatch()
 }
 
 func getTag() (string, error) {
