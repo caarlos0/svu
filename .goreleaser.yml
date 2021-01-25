@@ -9,7 +9,7 @@ build:
   goarch:
     - amd64
 brews:
-- github:
+- tap:
     owner: caarlos0
     name: homebrew-tap
   folder: Formula
