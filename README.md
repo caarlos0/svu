@@ -92,6 +92,10 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 | `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
 | `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
 
+## Force patch version increment
+
+Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
+
 ## Creating tags
 
 The idea is that `svu` will just print things, so its safe to run at any time.
