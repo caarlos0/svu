@@ -23,7 +23,7 @@ var (
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
-	forcePatchIncrement = app.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
+	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
 )
 
 func main() {
