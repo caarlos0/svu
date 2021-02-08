@@ -128,3 +128,7 @@ curl -sfL https://install.goreleaser.com/github.com/caarlos0/svu.sh | bash -s --
 ```
 
 Or download one from the releases tab and install manually.
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/caarlos0/svu.svg)](https://starchart.cc/caarlos0/svu)
