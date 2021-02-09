@@ -8,6 +8,7 @@ build:
     - linux
   goarch:
     - amd64
+    - arm64
 brews:
 - tap:
     owner: caarlos0
