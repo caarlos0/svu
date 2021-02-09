@@ -105,7 +105,7 @@ func findNext(current *semver.Version, tag string) semver.Version {
 		return current.IncMinor()
 	}
 
-	if *forcePatchIncrement {
+	if patch.MatchString(log) || *forcePatchIncrement {
 		return current.IncPatch()
 	}
 
