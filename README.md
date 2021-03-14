@@ -96,6 +96,16 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 
 Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
 
+## Pattern matching
+
+By default `svu` will get the latest tag, but if you are using more than just version tags you might want `svu` to just look at tags matching a specific pattern. To do that you can set the `--pattern` flag.   
+```sh
+$ svu
+svu: error: tag "latest" is not semantic: Invalid Semantic Version
+$ svu --pattern="v*"
+v1.4.0
+```
+
 ## Creating tags
 
 The idea is that `svu` will just print things, so its safe to run at any time.
