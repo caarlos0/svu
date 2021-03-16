@@ -8,7 +8,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/alecthomas/kingpin"
-	"github.com/caarlos0/svu/internal/git"
+	"github.com/ionDynamics/svu/internal/git"
 )
 
 var (
