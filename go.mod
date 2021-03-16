@@ -1,4 +1,4 @@
-module github.com/caarlos0/svu
+module github.com/ionDynamics/svu
 
 go 1.15
 
