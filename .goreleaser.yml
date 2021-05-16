@@ -1,14 +1,20 @@
-build:
-  env:
-  - GO111MODULE=on
+gomod:
+  proxy: true
+builds:
+- env:
   - CGO_ENABLED=0
   goos:
-    - windows
-    - darwin
-    - linux
+  - linux
+  - darwin
+  - windows
   goarch:
-    - amd64
-    - arm64
+  - amd64
+  - arm64
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  flags:
+    - -trimpath
+  ldflags:
+    - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .CommitDate }} -X main.builtBy=goreleaser
 brews:
 - tap:
     owner: caarlos0
