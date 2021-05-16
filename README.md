@@ -84,7 +84,7 @@ By default `svu` will get the latest tag from the current branch. Using the `--t
 
 ## Discarding pre-release and build metadata
 
-To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your comman dof choice with the following flags:
+To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your command of choice with the following flags:
 
 | Flag               | Description                              | Example                                  |
 | ------------------ | ---------------------------------------- | ---------------------------------------- |
@@ -95,6 +95,16 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 ## Force patch version increment
 
 Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
+
+## Pattern matching
+
+By default `svu` will get the latest tag, but if you are using more than just version tags you might want `svu` to just look at tags matching a specific pattern. To do that you can set the `--pattern` flag.   
+```sh
+$ svu
+svu: error: tag "latest" is not semantic: Invalid Semantic Version
+$ svu --pattern="v*"
+v1.4.0
+```
 
 ## Creating tags
 

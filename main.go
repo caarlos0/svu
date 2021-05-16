@@ -23,6 +23,7 @@ var (
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
+	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
 )
 
@@ -37,7 +38,7 @@ func main() {
 	app.FatalIfError(err, "failed to get current tag for repo")
 
 	current, err := semver.NewVersion(tag)
-	app.FatalIfError(err, "version %s is not semantic", tag)
+	app.FatalIfError(err, `tag "%s" is not semantic`, tag)
 
 	if !*metadata {
 		current = unsetMetadata(current)
@@ -113,16 +114,28 @@ func findNext(current *semver.Version, tag string) semver.Version {
 }
 
 func getTag() (string, error) {
+	gitDescribe := []string{"describe", "--tags"}
+	if *pattern != "" {
+		gitDescribe = append(gitDescribe, "--match", *pattern)
+	}
+
 	if *tagMode == "all-branches" {
-		tagHash, err := git.Clean(git.Run("rev-list", "--tags", "--max-count=1"))
+		tagsArg := "--tags"
+		if *pattern != "" {
+			tagsArg = tagsArg + "=" + *pattern
+		}
+
+		tagHash, err := git.Clean(git.Run("rev-list", tagsArg, "--max-count=1"))
 		if err != nil {
 			return "", err
 		}
 
-		return git.Clean(git.Run("describe", "--tags", tagHash))
+		gitDescribe = append(gitDescribe, tagHash)
+		return git.Clean(git.Run(gitDescribe...))
 	}
 
-	return git.Clean(git.Run("describe", "--tags", "--abbrev=0"))
+	gitDescribe = append(gitDescribe, "--abbrev=0")
+	return git.Clean(git.Run(gitDescribe...))
 }
 
 func getChangelog(tag string) (string, error) {
