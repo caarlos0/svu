@@ -22,7 +22,7 @@ func DescribeTag(tagMode string) (string, error) {
 			return "", err
 		}
 
-		return clean(run("describe", "--tags", tagHash))
+		return clean(run("describe", "--tags", "--abbrev=0", tagHash))
 	}
 
 	return clean(run("describe", "--tags", "--abbrev=0"))

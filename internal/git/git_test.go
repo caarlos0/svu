@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/matryer/is"
 )
@@ -24,18 +25,25 @@ func TestIsRepo(t *testing.T) {
 }
 
 func TestDescribeTag(t *testing.T) {
-	tempdir(t)
-	gitInit(t)
-	gitCommit(t, "chore: foobar")
-	gitCommit(t, "lalalala")
-	gitTag(t, "v1.2.3")
-	createBranch(t, "not-main")
-	gitCommit(t, "docs: update")
-	gitCommit(t, "foo: bar")
-	gitTag(t, "v1.2.4")
-	checkout(t, "-")
-
+	setup := func(tb testing.TB) {
+		tb.Helper()
+		tempdir(tb)
+		gitInit(tb)
+		gitCommit(tb, "chore: foobar")
+		gitCommit(tb, "lalalala")
+		gitTag(tb, "v1.2.3")
+		gitCommit(tb, "chore: aaafoobar")
+		gitCommit(tb, "docs: asdsad")
+		gitCommit(tb, "fix: fooaaa")
+		time.Sleep(time.Second) // TODO: no idea why, but without the sleep sometimes commits are in wrong order
+		createBranch(tb, "not-main")
+		gitCommit(tb, "docs: update")
+		gitCommit(tb, "foo: bar")
+		gitTag(tb, "v1.2.4")
+		switchToBranch(tb, "main")
+	}
 	t.Run("normal", func(t *testing.T) {
+		setup(t)
 		is := is.New(t)
 		tag, err := DescribeTag("")
 		is.NoErr(err)
@@ -43,6 +51,7 @@ func TestDescribeTag(t *testing.T) {
 	})
 
 	t.Run("all-branches", func(t *testing.T) {
+		setup(t)
 		is := is.New(t)
 		tag, err := DescribeTag("all-branches")
 		is.NoErr(err)
@@ -75,33 +84,33 @@ func TestChangelog(t *testing.T) {
 	}
 }
 
-func checkout(tb testing.TB, branch string) {
+func switchToBranch(tb testing.TB, branch string) {
 	is := is.New(tb)
-	_, err := run("checkout", branch)
+	_, err := fakeGitRun("switch", branch)
 	is.NoErr(err)
 }
 
 func createBranch(tb testing.TB, branch string) {
 	is := is.New(tb)
-	_, err := run("checkout", "-b", branch)
+	_, err := fakeGitRun("switch", "-c", branch)
 	is.NoErr(err)
 }
 
 func gitTag(tb testing.TB, tag string) {
 	is := is.New(tb)
-	_, err := run("tag", tag)
+	_, err := fakeGitRun("tag", tag)
 	is.NoErr(err)
 }
 
 func gitCommit(tb testing.TB, msg string) {
 	is := is.New(tb)
-	_, err := run("commit", "--allow-empty", "-am", msg)
+	_, err := fakeGitRun("commit", "--allow-empty", "-am", msg)
 	is.NoErr(err)
 }
 
 func gitInit(tb testing.TB) {
 	is := is.New(tb)
-	_, err := run("init")
+	_, err := fakeGitRun("init")
 	is.NoErr(err)
 }
 
@@ -115,4 +124,15 @@ func tempdir(tb testing.TB) {
 	dir := tb.TempDir()
 	is.NoErr(os.Chdir(dir))
 	tb.Logf("cd into %s", dir)
+}
+
+func fakeGitRun(args ...string) (string, error) {
+	allArgs := []string{
+		"-c", "user.name='svu'",
+		"-c", "user.email='svu@example.com'",
+		"-c", "commit.gpgSign=false",
+		"-c", "log.showSignature=false",
+	}
+	allArgs = append(allArgs, args...)
+	return run(allArgs...)
 }
