@@ -1,8 +1,9 @@
-package main
+package svu
 
 import (
 	"testing"
 
+	"github.com/Masterminds/semver"
 	"github.com/matryer/is"
 )
 
@@ -55,7 +56,7 @@ func TestIsPatch(t *testing.T) {
 		"fix(lalal): lalala",
 	} {
 		t.Run(log, func(t *testing.T) {
-			is.New(t).True(isPatch(log, false)) // should be a patch change
+			is.New(t).True(isPatch(log)) // should be a patch change
 		})
 	}
 
@@ -65,17 +66,21 @@ func TestIsPatch(t *testing.T) {
 		"invalid commit",
 	} {
 		t.Run(log, func(t *testing.T) {
-			is.New(t).True(!isPatch(log, false)) // should NOT be a patch change
+			is.New(t).True(!isPatch(log)) // should NOT be a patch change
 		})
 	}
+}
 
-	for _, log := range []string{
-		"chore: foobar",
-		"docs: something",
-		"invalid commit",
+func TestFindNext(t *testing.T) {
+	version1 := semver.MustParse("v1.2.3")
+	version2 := semver.MustParse("v2.4.12")
+	for expected, next := range map[string]semver.Version{
+		"v1.2.3": FindNext(version1, false, "chore: should do nothing"),
+		"v1.2.4": FindNext(version1, true, "chore: is forcing patch, so should inc patch"),
+		"v1.3.0": FindNext(version1, false, "feat: inc major"),
+		"v2.0.0": FindNext(version1, true, "chore!: hashbang incs major"),
+		"v3.0.0": FindNext(version2, false, "feat: something\nBREAKING CHANGE: increases major"),
 	} {
-		t.Run(log+" (force)", func(t *testing.T) {
-			is.New(t).True(isPatch(log, true)) // should NOT be a patch change
-		})
+		is.New(t).True(semver.MustParse(expected).Equal(&next)) // expected and next version should match
 	}
 }

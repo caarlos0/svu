@@ -2,6 +2,7 @@ package git
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -36,4 +37,27 @@ func Clean(output string, err error) (string, error) {
 		err = errors.New(strings.TrimSuffix(err.Error(), "\n"))
 	}
 	return output, err
+}
+
+func DescribeTag(tagMode string) (string, error) {
+	if tagMode == "all-branches" {
+		tagHash, err := Clean(Run("rev-list", "--tags", "--max-count=1"))
+		if err != nil {
+			return "", err
+		}
+
+		return Clean(Run("describe", "--tags", tagHash))
+	}
+
+	return Clean(Run("describe", "--tags", "--abbrev=0"))
+}
+
+func Changelog(tag string) (string, error) {
+	return gitLog(fmt.Sprintf("tags/%s..HEAD", tag))
+}
+
+func gitLog(refs ...string) (string, error) {
+	args := []string{"log", "--no-decorate", "--no-color"}
+	args = append(args, refs...)
+	return Run(args...)
 }

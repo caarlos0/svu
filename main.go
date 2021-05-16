@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/alecthomas/kingpin"
 	"github.com/caarlos0/svu/internal/git"
+	"github.com/caarlos0/svu/internal/svu"
 )
 
 var (
@@ -33,7 +33,7 @@ func main() {
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	tag, err := getTag()
+	tag, err := git.DescribeTag(*tagMode)
 	app.FatalIfError(err, "failed to get current tag for repo")
 
 	current, err := semver.NewVersion(tag)
@@ -72,13 +72,6 @@ func main() {
 	fmt.Printf("%s%s\n", prefix, result.String())
 }
 
-var (
-	breaking     = regexp.MustCompile("(?im).*breaking change:.*")
-	breakingBang = regexp.MustCompile(`(?im).*(\w+)(\(.*\))?!:.*`)
-	feature      = regexp.MustCompile(`(?im).*feat(\(.*\))?:.*`)
-	patch        = regexp.MustCompile(`(?im).*fix(\(.*\))?:.*`)
-)
-
 func unsetPreRelease(current *semver.Version) *semver.Version {
 	newV, _ := current.SetPrerelease("")
 
@@ -96,55 +89,8 @@ func unsetMetadata(current *semver.Version) *semver.Version {
 }
 
 func findNext(current *semver.Version, tag string) semver.Version {
-	log, err := getChangelog(tag)
+	log, err := git.Changelog(tag)
 	app.FatalIfError(err, "failed to get changelog")
 
-	if isBreaking(log) {
-		return current.IncMajor()
-	}
-
-	if isFeature(log) {
-		return current.IncMinor()
-	}
-
-	if isPatch(log, *forcePatchIncrement) {
-		return current.IncPatch()
-	}
-
-	return *current
-}
-
-func isBreaking(log string) bool {
-	return breaking.MatchString(log) || breakingBang.MatchString(log)
-}
-
-func isFeature(log string) bool {
-	return feature.MatchString(log)
-}
-
-func isPatch(log string, force bool) bool {
-	return force || patch.MatchString(log)
-}
-
-func getTag() (string, error) {
-	if *tagMode == "all-branches" {
-		tagHash, err := git.Clean(git.Run("rev-list", "--tags", "--max-count=1"))
-		if err != nil {
-			return "", err
-		}
-
-		return git.Clean(git.Run("describe", "--tags", tagHash))
-	}
-
-	return git.Clean(git.Run("describe", "--tags", "--abbrev=0"))
-}
-
-func getChangelog(tag string) (string, error) {
-	return gitLog(fmt.Sprintf("tags/%s..HEAD", tag))
-}
-
-func gitLog(refs ...string) (string, error) {
-	args := []string{"log", "--no-decorate", "--no-color"}
-	args = append(args, refs...)
-	return git.Run(args...)
+	return svu.FindNext(current, *forcePatchIncrement, log)
 }
