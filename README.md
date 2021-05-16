@@ -127,7 +127,7 @@ or
 curl -sfL https://install.goreleaser.com/github.com/caarlos0/svu.sh | bash -s -- -b /usr/local/bin
 ```
 
-Or download one from the releases tab and install manually.
+Or download one from the [releases tab](https://github.com/caarlos0/svu/releases) and install manually.
 
 ## Stargazers over time
 
