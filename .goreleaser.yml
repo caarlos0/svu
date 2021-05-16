@@ -14,3 +14,15 @@ brews:
     owner: caarlos0
     name: homebrew-tap
   folder: Formula
+  homepage:  https://github.com/caarlos0/svu
+  description: Semantic Version Util.
+nfpms:
+- homepage:  https://github.com/caarlos0/svu
+  description: Semantic Version Util.
+  maintainer: Carlos Alexandro Becker <pkg@carlosbecker.com>
+  license: MIT
+  vendor: Becker Software
+  formats:
+  - apk
+  - deb
+  - rpm
