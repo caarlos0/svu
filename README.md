@@ -84,7 +84,7 @@ By default `svu` will get the latest tag from the current branch. Using the `--t
 
 ## Discarding pre-release and build metadata
 
-To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your comman dof choice with the following flags:
+To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your command of choice with the following flags:
 
 | Flag               | Description                              | Example                                  |
 | ------------------ | ---------------------------------------- | ---------------------------------------- |
@@ -98,7 +98,7 @@ Setting the `--force-patch-increment` flag forces a patch version increment rega
 
 ## Creating tags
 
-The idea is that `svu` will just print things, so its safe to run at any time.
+The idea is that `svu` will just print things, so it's safe to run at any time.
 
 You can create tags by wrapping it in an alias. For example, I have one like
 this:
