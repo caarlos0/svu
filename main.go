@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/Masterminds/semver"
@@ -12,7 +13,6 @@ import (
 )
 
 var (
-	version             = "dev"
 	app                 = kingpin.New("svu", "semantic version util")
 	nextCmd             = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
 	majorCmd            = app.Command("major", "new major version")
@@ -28,7 +28,7 @@ var (
 
 func main() {
 	app.Author("Carlos Alexandro Becker <carlos@becker.software>")
-	app.Version("svu version " + version)
+	app.Version(buildVersion(version, commit, date, builtBy))
 	app.VersionFlag.Short('v')
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -93,4 +93,29 @@ func findNext(current *semver.Version, tag string) semver.Version {
 	app.FatalIfError(err, "failed to get changelog")
 
 	return svu.FindNext(current, *forcePatchIncrement, log)
+}
+
+// nolint: gochecknoglobals
+var (
+	version = "dev"
+	commit  = ""
+	date    = ""
+	builtBy = ""
+)
+
+func buildVersion(version, commit, date, builtBy string) string {
+	result := "svu version " + version
+	if commit != "" {
+		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
+	}
+	if date != "" {
+		result = fmt.Sprintf("%s\nbuilt at: %s", result, date)
+	}
+	if builtBy != "" {
+		result = fmt.Sprintf("%s\nbuilt by: %s", result, builtBy)
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
+		result = fmt.Sprintf("%s\nmodule version: %s, checksum: %s", result, info.Main.Version, info.Main.Sum)
+	}
+	return result
 }
