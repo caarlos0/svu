@@ -40,7 +40,7 @@ func TestDescribeTag(t *testing.T) {
 		gitCommit(tb, "docs: update")
 		gitCommit(tb, "foo: bar")
 		gitTag(tb, "v1.2.4")
-		switchToBranch(tb, "main")
+		switchToBranch(tb, "-")
 	}
 	t.Run("normal", func(t *testing.T) {
 		setup(t)
