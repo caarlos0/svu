@@ -27,11 +27,11 @@ var (
 )
 
 func main() {
-	app.Author("Carlos Alexandro Becker <caarlos0@gmail.com>")
+	app.Author("Carlos Alexandro Becker <carlos@becker.software>")
 	app.Version("svu version " + version)
 	app.VersionFlag.Short('v')
 	app.HelpFlag.Short('h')
-	var cmd = kingpin.MustParse(app.Parse(os.Args[1:]))
+	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	tag, err := getTag()
 	app.FatalIfError(err, "failed to get current tag for repo")
@@ -72,10 +72,12 @@ func main() {
 	fmt.Printf("%s%s\n", prefix, result.String())
 }
 
-var breaking = regexp.MustCompile("(?im).*breaking change:.*")
-var breakingBang = regexp.MustCompile("(?im).*(feat|fix)(\\(.*\\))?!:.*")
-var feature = regexp.MustCompile("(?im).*feat(\\(.*\\))?:.*")
-var patch = regexp.MustCompile("(?im).*fix(\\(.*\\))?:.*")
+var (
+	breaking     = regexp.MustCompile("(?im).*breaking change:.*")
+	breakingBang = regexp.MustCompile(`(?im).*(\w+)(\(.*\))?!:.*`)
+	feature      = regexp.MustCompile(`(?im).*feat(\(.*\))?:.*`)
+	patch        = regexp.MustCompile(`(?im).*fix(\(.*\))?:.*`)
+)
 
 func unsetPreRelease(current *semver.Version) *semver.Version {
 	newV, _ := current.SetPrerelease("")
@@ -97,19 +99,31 @@ func findNext(current *semver.Version, tag string) semver.Version {
 	log, err := getChangelog(tag)
 	app.FatalIfError(err, "failed to get changelog")
 
-	if breaking.MatchString(log) || breakingBang.MatchString(log) {
+	if isBreaking(log) {
 		return current.IncMajor()
 	}
 
-	if feature.MatchString(log) {
+	if isFeature(log) {
 		return current.IncMinor()
 	}
 
-	if patch.MatchString(log) || *forcePatchIncrement {
+	if isPatch(log, *forcePatchIncrement) {
 		return current.IncPatch()
 	}
 
 	return *current
+}
+
+func isBreaking(log string) bool {
+	return breaking.MatchString(log) || breakingBang.MatchString(log)
+}
+
+func isFeature(log string) bool {
+	return feature.MatchString(log)
+}
+
+func isPatch(log string, force bool) bool {
+	return force || patch.MatchString(log)
 }
 
 func getTag() (string, error) {
@@ -130,7 +144,7 @@ func getChangelog(tag string) (string, error) {
 }
 
 func gitLog(refs ...string) (string, error) {
-	var args = []string{"log", "--no-decorate", "--no-color"}
+	args := []string{"log", "--no-decorate", "--no-color"}
 	args = append(args, refs...)
 	return git.Run(args...)
 }

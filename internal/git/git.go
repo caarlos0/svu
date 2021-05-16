@@ -16,12 +16,12 @@ func IsRepo() bool {
 
 // Run runs a git command and returns its output or errors
 func Run(args ...string) (string, error) {
-	var extraArgs = []string{
+	extraArgs := []string{
 		"-c", "log.showSignature=false",
 	}
 	args = append(extraArgs, args...)
 	/* #nosec */
-	var cmd = exec.Command("git", args...)
+	cmd := exec.Command("git", args...)
 	bts, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.New(string(bts))
