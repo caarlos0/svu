@@ -1,5 +1,5 @@
-env:
-  - DESC=Semantic Version Utility
+variables:
+  description: Semantic Version Utility
 
 includes:
   - from_url:
