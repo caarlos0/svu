@@ -22,6 +22,7 @@ var (
 	metadata            = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
+	stripPrefix         = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
 )
@@ -51,11 +52,6 @@ func main() {
 		current = unsetBuild(current)
 	}
 
-	var prefix string
-	if strings.HasPrefix(tag, "v") {
-		prefix = "v"
-	}
-
 	var result semver.Version
 	switch cmd {
 	case nextCmd.FullCommand():
@@ -69,7 +65,15 @@ func main() {
 	case currentCmd.FullCommand():
 		result = *current
 	}
-	fmt.Printf("%s%s\n", prefix, result.String())
+	fmt.Println(getVersion(tag, result.String(), *stripPrefix))
+}
+
+func getVersion(tag, result string, stripPrefix bool) string {
+	var prefix string
+	if !stripPrefix && strings.HasPrefix(tag, "v") {
+		prefix = "v"
+	}
+	return prefix + result
 }
 
 func unsetPreRelease(current *semver.Version) *semver.Version {
