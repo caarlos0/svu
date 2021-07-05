@@ -80,7 +80,7 @@ By default `svu` will get the latest tag from the current branch. Using the `--t
 | Flag                        | Description                          | Git command used under the hood                            |
 | --------------------------- | ------------------------------------ | ---------------------------------------------------------- |
 | `--tag-mode current-branch` | Get latest tag from current branch.  | `git describe --tags --abbrev=0`                           |
-| `--tag-mode all-branches`   | Get latest tag accross all branches. | `git describe --tags $(git rev-list --tags --max-count=1)` |
+| `--tag-mode all-branches`   | Get latest tag across all branches. | `git describe --tags $(git rev-list --tags --max-count=1)` |
 
 ## Discarding pre-release and build metadata
 
@@ -91,6 +91,10 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 | `--no-metadata`    | Discards pre-release and build metadata. | `v1.0.0-alpha+build.f902daf` -> `v1.0.0` |
 | `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
 | `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
+
+## Stripping the tag prefix 
+
+`--strip-prefix` removes any `v` prefix from the version output.  For example, `v1.2.3` would be output as `1.2.3`
 
 ## Force patch version increment
 
