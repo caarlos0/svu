@@ -30,6 +30,7 @@ func TestDescribeTag(t *testing.T) {
 		tempdir(tb)
 		gitInit(tb)
 		gitCommit(tb, "chore: foobar")
+		gitTag(tb, "pattern-1.2.3")
 		gitCommit(tb, "lalalala")
 		gitTag(tb, "v1.2.3")
 		gitCommit(tb, "chore: aaafoobar")
@@ -45,7 +46,7 @@ func TestDescribeTag(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("")
+		tag, err := DescribeTag("", "")
 		is.NoErr(err)
 		is.Equal("v1.2.3", tag)
 	})
@@ -53,9 +54,17 @@ func TestDescribeTag(t *testing.T) {
 	t.Run("all-branches", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("all-branches")
+		tag, err := DescribeTag("all-branches", "")
 		is.NoErr(err)
 		is.Equal("v1.2.4", tag)
+	})
+
+	t.Run("pattern", func(t *testing.T) {
+		setup(t)
+		is := is.New(t)
+		tag, err := DescribeTag("", "pattern-*")
+		is.NoErr(err)
+		is.Equal("pattern-1.2.3", tag)
 	})
 }
 
