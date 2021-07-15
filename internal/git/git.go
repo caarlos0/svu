@@ -15,17 +15,28 @@ func IsRepo() bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
-func DescribeTag(tagMode string) (string, error) {
+func DescribeTag(tagMode string, pattern string) (string, error) {
+	gitDescribe := []string{"describe", "--tags", "--abbrev=0"}
+	if pattern != "" {
+		gitDescribe = append(gitDescribe, "--match", pattern)
+	}
+
 	if tagMode == "all-branches" {
-		tagHash, err := clean(run("rev-list", "--tags", "--max-count=1"))
+		tagsArg := "--tags"
+		if pattern != "" {
+			tagsArg = tagsArg + "=" + pattern
+		}
+
+		tagHash, err := clean(run("rev-list", tagsArg, "--max-count=1"))
 		if err != nil {
 			return "", err
 		}
 
-		return clean(run("describe", "--tags", "--abbrev=0", tagHash))
+		gitDescribe = append(gitDescribe, tagHash)
+		return clean(run(gitDescribe...))
 	}
 
-	return clean(run("describe", "--tags", "--abbrev=0"))
+	return clean(run(gitDescribe...))
 }
 
 func Changelog(tag string) (string, error) {

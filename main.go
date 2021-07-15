@@ -20,6 +20,7 @@ var (
 	patchCmd            = app.Command("patch", "new patch version").Alias("p")
 	currentCmd          = app.Command("current", "prints current version").Alias("c")
 	metadata            = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
+	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
 	stripPrefix         = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
@@ -34,7 +35,7 @@ func main() {
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	tag, err := git.DescribeTag(*tagMode)
+	tag, err := git.DescribeTag(*tagMode, *pattern)
 	app.FatalIfError(err, "failed to get current tag for repo")
 
 	current, err := semver.NewVersion(tag)
