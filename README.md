@@ -94,7 +94,11 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 
 ## Stripping the tag prefix 
 
-`--strip-prefix` removes any `v` prefix from the version output.  For example, `v1.2.3` would be output as `1.2.3`
+`--strip-prefix` removes any prefix from the version output.
+For example, `v1.2.3` would be output as `1.2.3`.
+
+The default prefix is `v`, however a custom prefix can be supplied using `--prefix`.
+So for `--prefix=foo/v --strip-prefix` and tag `foo/v1.2.3`, the output would be `1.2.3`.
 
 ## Force patch version increment
 

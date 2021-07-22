@@ -23,6 +23,7 @@ var (
 	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if set to false").Default("true").Bool()
+	prefix              = app.Flag("prefix", "set a custom prefix").Default("v").String()
 	stripPrefix         = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
@@ -38,7 +39,7 @@ func main() {
 	tag, err := git.DescribeTag(*tagMode, *pattern)
 	app.FatalIfError(err, "failed to get current tag for repo")
 
-	current, err := semver.NewVersion(tag)
+	current, err := semver.NewVersion(strings.TrimPrefix(tag, *prefix))
 	app.FatalIfError(err, "version %s is not semantic", tag)
 
 	if !*metadata {
@@ -66,13 +67,12 @@ func main() {
 	case currentCmd.FullCommand():
 		result = *current
 	}
-	fmt.Println(getVersion(tag, result.String(), *stripPrefix))
+	fmt.Println(getVersion(tag, *prefix, result.String(), *stripPrefix))
 }
 
-func getVersion(tag, result string, stripPrefix bool) string {
-	var prefix string
-	if !stripPrefix && strings.HasPrefix(tag, "v") {
-		prefix = "v"
+func getVersion(tag, prefix, result string, stripPrefix bool) string {
+	if stripPrefix {
+		prefix = ""
 	}
 	return prefix + result
 }
