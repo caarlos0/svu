@@ -8,3 +8,5 @@ includes:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package.yml
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/release.yml
+  - from_url:
+      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/docker.yml
