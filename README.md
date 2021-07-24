@@ -7,7 +7,7 @@ Semantic Version Util is a tool to manage semantic versions at ease!
 You can print the current version, increase patch/minor/major manually or just
 get the next tag based on your git log!
 
-## Example usage:
+## example usage
 
 ### `svu`
 
@@ -20,7 +20,7 @@ $ svu
 v1.3.0
 ```
 
-#### Commit messages vs what they do:
+#### commit messages vs what they do
 
 | Commit message                                                                         | Tag increase |
 | -------------------------------------------------------------------------------------- | ------------ |
@@ -73,7 +73,7 @@ $ svu patch
 v1.2.4
 ```
 
-## Tag mode
+## tag mode
 
 By default `svu` will get the latest tag from the current branch. Using the `--tag-mode` flag this behaviour can be altered:
 
@@ -82,7 +82,7 @@ By default `svu` will get the latest tag from the current branch. Using the `--t
 | `--tag-mode current-branch` | Get latest tag from current branch.  | `git describe --tags --abbrev=0`                           |
 | `--tag-mode all-branches`   | Get latest tag across all branches. | `git describe --tags $(git rev-list --tags --max-count=1)` |
 
-## Discarding pre-release and build metadata
+## discarding pre-release and build metadata
 
 To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your command of choice with the following flags:
 
@@ -92,7 +92,7 @@ To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata
 | `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
 | `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
 
-## Stripping the tag prefix 
+## stripping the tag prefix
 
 `--strip-prefix` removes any prefix from the version output.
 For example, `v1.2.3` would be output as `1.2.3`.
@@ -100,11 +100,11 @@ For example, `v1.2.3` would be output as `1.2.3`.
 The default prefix is `v`, however a custom prefix can be supplied using `--prefix`.
 So for `--prefix=foo/v --strip-prefix` and tag `foo/v1.2.3`, the output would be `1.2.3`.
 
-## Force patch version increment
+## force patch version increment
 
 Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
 
-## Creating tags
+## creating tags
 
 The idea is that `svu` will just print things, so it's safe to run at any time.
 
@@ -117,26 +117,39 @@ alias gtn='git tag $(svu next)'
 
 So, whenever I want to create a tag, I just run `gtn`.
 
-## Install
+## install
 
-```sh
-go get github.com/caarlos0/svu
-```
-
-or
+### macOS
 
 ```sh
 brew install caarlos0/tap/svu
 ```
 
-or
+### linux
+
+#### apt
 
 ```sh
-curl -sfL https://install.goreleaser.com/github.com/caarlos0/svu.sh | bash -s -- -b /usr/local/bin
+echo 'deb [trusted=yes] https://apt.fury.io/caarlos0/ /' | sudo tee /etc/apt/sources.list.d/caarlos0.list
+sudo apt update
+sudo apt install svu
 ```
+
+#### yum
+
+```sh
+echo '[caarlos0]
+name=caarlos0
+baseurl=https://yum.fury.io/caarlos0/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/caarlos0.repo
+sudo yum install svu
+```
+
+#### manually
 
 Or download one from the [releases tab](https://github.com/caarlos0/svu/releases) and install manually.
 
-## Stargazers over time
+## stargazers over time
 
 [![Stargazers over time](https://starchart.cc/caarlos0/svu.svg)](https://starchart.cc/caarlos0/svu)
