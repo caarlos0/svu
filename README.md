@@ -146,6 +146,12 @@ gpgcheck=0' | sudo tee /etc/yum.repos.d/caarlos0.repo
 sudo yum install svu
 ```
 
+### docker
+
+```sh
+docker run --rm -v $PWD:/tmp --workdir /tmp ghcr.io/caarlos0/svu --help
+```
+
 #### manually
 
 Or download one from the [releases tab](https://github.com/caarlos0/svu/releases) and install manually.
