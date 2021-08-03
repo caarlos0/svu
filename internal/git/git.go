@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/gobwas/glob"
 )
 
 // copied from goreleaser
@@ -15,28 +17,41 @@ func IsRepo() bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
+func getAllTags(args ...string) ([]string, error) {
+	tags, err := run(append([]string{"tag", "--sort=-version:refname"}, args...)...)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(tags, "\n"), nil
+}
+
 func DescribeTag(tagMode string, pattern string) (string, error) {
-	gitDescribe := []string{"describe", "--tags", "--abbrev=0"}
-	if pattern != "" {
-		gitDescribe = append(gitDescribe, "--match", pattern)
+	args := []string{}
+	if tagMode == "current-branch" {
+		args = []string{"--merged"}
+	}
+	tags, err := getAllTags(args...)
+	if err != nil {
+		return "", err
 	}
 
-	if tagMode == "all-branches" {
-		tagsArg := "--tags"
-		if pattern != "" {
-			tagsArg = tagsArg + "=" + pattern
-		}
-
-		tagHash, err := clean(run("rev-list", tagsArg, "--max-count=1"))
-		if err != nil {
-			return "", err
-		}
-
-		gitDescribe = append(gitDescribe, tagHash)
-		return clean(run(gitDescribe...))
+	if len(tags) == 0 {
+		return "", nil
+	}
+	if pattern == "" {
+		return tags[0], nil
 	}
 
-	return clean(run(gitDescribe...))
+	g, err := glob.Compile(pattern)
+	if err != nil {
+		return "", err
+	}
+	for _, tag := range tags {
+		if g.Match(tag) {
+			return tag, nil
+		}
+	}
+	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
 func Changelog(tag string) (string, error) {
@@ -55,14 +70,6 @@ func run(args ...string) (string, error) {
 		return "", errors.New(string(bts))
 	}
 	return string(bts), nil
-}
-
-func clean(output string, err error) (string, error) {
-	output = strings.Replace(strings.Split(output, "\n")[0], "'", "", -1)
-	if err != nil {
-		err = errors.New(strings.TrimSuffix(err.Error(), "\n"))
-	}
-	return output, err
 }
 
 func gitLog(refs ...string) (string, error) {
