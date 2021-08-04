@@ -33,6 +33,7 @@ func TestDescribeTag(t *testing.T) {
 		gitTag(tb, "pattern-1.2.3")
 		gitCommit(tb, "lalalala")
 		gitTag(tb, "v1.2.3")
+		gitTag(tb, "v1.2.4") // multiple tags in a single commit
 		gitCommit(tb, "chore: aaafoobar")
 		gitCommit(tb, "docs: asdsad")
 		gitCommit(tb, "fix: fooaaa")
@@ -40,15 +41,15 @@ func TestDescribeTag(t *testing.T) {
 		createBranch(tb, "not-main")
 		gitCommit(tb, "docs: update")
 		gitCommit(tb, "foo: bar")
-		gitTag(tb, "v1.2.4")
+		gitTag(tb, "v1.2.5")
 		switchToBranch(tb, "-")
 	}
 	t.Run("normal", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("", "")
+		tag, err := DescribeTag("current-branch", "")
 		is.NoErr(err)
-		is.Equal("v1.2.3", tag)
+		is.Equal("v1.2.4", tag)
 	})
 
 	t.Run("all-branches", func(t *testing.T) {
@@ -56,13 +57,13 @@ func TestDescribeTag(t *testing.T) {
 		is := is.New(t)
 		tag, err := DescribeTag("all-branches", "")
 		is.NoErr(err)
-		is.Equal("v1.2.4", tag)
+		is.Equal("v1.2.5", tag)
 	})
 
 	t.Run("pattern", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("", "pattern-*")
+		tag, err := DescribeTag("current-branch", "pattern-*")
 		is.NoErr(err)
 		is.Equal("pattern-1.2.3", tag)
 	})
