@@ -36,11 +36,16 @@ func main() {
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
+	var current *semver.Version
 	tag, err := git.DescribeTag(*tagMode, *pattern)
-	app.FatalIfError(err, "failed to get current tag for repo")
-
-	current, err := semver.NewVersion(strings.TrimPrefix(tag, *prefix))
-	app.FatalIfError(err, "version %s is not semantic", tag)
+	app.FatalIfError(err, "issues doing git.DescribeTag on %v", tag)
+	if tag != "" {
+		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
+		app.FatalIfError(err, "version %s is not semantic", tag)
+	} else {
+		current, err = semver.NewVersion("0.0.0")
+		app.FatalIfError(err, "version %s is not semantic", current)
+	}
 
 	if !*metadata {
 		current = unsetMetadata(current)
