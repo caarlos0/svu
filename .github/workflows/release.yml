@@ -43,6 +43,9 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       -
+        name: Setup Sigstore
+        uses: sigstore/cosign-installer@v1.2.0
+      -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
