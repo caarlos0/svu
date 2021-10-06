@@ -25,13 +25,17 @@ func TestUnsetMetadata(t *testing.T) {
 }
 
 func TestStripPrefixReturnsVersionOnly(t *testing.T) {
-	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", true) == "4.5.6")
+	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "", true) == "4.5.6")
 }
 
 func TestStripPrefixWhenNoPrefixReturnsVersionOnly(t *testing.T) {
-	is.New(t).True(getVersion("2.3.4", "v", "4.5.6", true) == "4.5.6")
+	is.New(t).True(getVersion("2.3.4", "v", "4.5.6", "", true) == "4.5.6")
 }
 
 func TestNoStripPrefixReturnsPrefixAndVersion(t *testing.T) {
-	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", false) == "v4.5.6")
+	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "", false) == "v4.5.6")
+}
+
+func TestSuffix(t *testing.T) {
+	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "dev", false) == "v4.5.6-dev")
 }
