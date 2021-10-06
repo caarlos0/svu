@@ -100,6 +100,10 @@ For example, `v1.2.3` would be output as `1.2.3`.
 The default prefix is `v`, however a custom prefix can be supplied using `--prefix`.
 So for `--prefix=foo/v --strip-prefix` and tag `foo/v1.2.3`, the output would be `1.2.3`.
 
+## adding a suffix
+
+`--suffix` can be used to set a custom suffix for the tag, e.g. build metadata or prelease.
+
 ## force patch version increment
 
 Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
