@@ -70,6 +70,7 @@ func main() {
 	}
 
 	result.SetMetadata(current.Metadata())
+	result.SetPrerelease(current.Prerelease())
 	fmt.Println(getVersion(tag, *prefix, result.String(), *suffix, *stripPrefix))
 }
 
