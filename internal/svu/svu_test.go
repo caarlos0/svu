@@ -84,3 +84,47 @@ func TestFindNext(t *testing.T) {
 		is.New(t).True(semver.MustParse(expected).Equal(&next)) // expected and next version should match
 	}
 }
+
+func TestFilterCommits(t *testing.T) {
+	type Input struct {
+		log      string
+		prefixes []string
+	}
+	tests := []struct {
+		name string
+		args Input
+		want string
+	}{
+		{
+			name: "test-filter-happy-path",
+			args: Input{
+				log:      "feat: something\nBREAKING CHANGE: something else",
+				prefixes: []string{"feat:"},
+			},
+			want: "feat: something",
+		},
+		{
+			name: "test-filter-drop-all",
+			args: Input{
+				log:      "feat: something\nBREAKING CHANGE: something else",
+				prefixes: []string{"fix:"},
+			},
+			want: "",
+		},
+		{
+			name: "test-filter-return-all",
+			args: Input{
+				log:      "feat: something\nBREAKING CHANGE: something else",
+				prefixes: []string{"feat:", "BREAKING"},
+			},
+			want: "feat: something\nBREAKING CHANGE: something else",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FilterCommits(tt.args.log, tt.args.prefixes); got != tt.want {
+				t.Errorf("FilterCommits() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
