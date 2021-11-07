@@ -44,7 +44,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       -
         name: Setup Sigstore
-        uses: sigstore/cosign-installer@v1.2.0
+        uses: sigstore/cosign-installer@v1.3.0
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
