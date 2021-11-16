@@ -82,7 +82,7 @@ func getCurrentVersion(tag string) (*semver.Version, error) {
 
 }
 
-func getVersion(tag, prefix, result string, stripPrefix bool) string {
+func getVersion(tag, prefix, result, suffix string, stripPrefix bool) string {
 	if stripPrefix {
 		prefix = ""
 	}
