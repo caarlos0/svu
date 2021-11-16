@@ -10,6 +10,10 @@ includes:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/release.yml
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/docker.yml
+  - from_url:
+      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/cosign_checksum.yml
+  - from_url:
+      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/cosign_docker.yml
 
 furies:
 - account: caarlos0
