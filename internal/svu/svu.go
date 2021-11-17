@@ -2,6 +2,7 @@ package svu
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/Masterminds/semver"
 )
@@ -39,4 +40,30 @@ func FindNext(current *semver.Version, forcePatchIncrement bool, log string) sem
 	}
 
 	return *current
+}
+
+func FilterCommits(log string, prefixes []string) string {
+	lines := strings.Split(log, "\n")
+	filtered := make([]string, 0)
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		commitMsgPrefix := strings.Split(line, " ")
+		if len(commitMsgPrefix) < 2 {
+			continue
+		}
+
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(commitMsgPrefix[1], prefix) {
+				filtered = append(filtered, line)
+			}
+		}
+	}
+	if len(filtered) > 0 {
+		return strings.Join(filtered, "\n")
+	} else {
+		return ""
+	}
 }
