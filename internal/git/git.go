@@ -81,5 +81,3 @@ func gitLog(refs ...string) (string, error) {
 	args = append(args, refs...)
 	return run(args...)
 }
-
-

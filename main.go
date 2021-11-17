@@ -84,7 +84,6 @@ func getCurrentVersion(tag string) (*semver.Version, error) {
 		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
 	}
 	return current, err
-
 }
 
 func getVersion(tag, prefix, result, suffix string, stripPrefix bool) string {
