@@ -41,8 +41,8 @@ func main() {
 	tag, err := git.DescribeTag(*tagMode, *pattern)
 	app.FatalIfError(err, "failed to get current tag for repo")
 
-	current, err := semver.NewVersion(strings.TrimPrefix(tag, *prefix))
-	app.FatalIfError(err, "version %s is not semantic", tag)
+	current, err := getCurrentVersion(tag)
+	app.FatalIfError(err, "could not get current version from tag: '%s'", tag)
 
 	if !*metadata {
 		current = unsetMetadata(current)
@@ -73,6 +73,18 @@ func main() {
 	result.SetMetadata(current.Metadata())
 	result.SetPrerelease(current.Prerelease())
 	fmt.Println(getVersion(tag, *prefix, result.String(), *suffix, *stripPrefix))
+}
+
+func getCurrentVersion(tag string) (*semver.Version, error) {
+	var current *semver.Version
+	var err error
+	if tag == "" {
+		current, err = semver.NewVersion(strings.TrimPrefix("0.0.0", *prefix))
+	} else {
+		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
+	}
+	return current, err
+
 }
 
 func getVersion(tag, prefix, result, suffix string, stripPrefix bool) string {

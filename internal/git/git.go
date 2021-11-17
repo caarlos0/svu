@@ -55,7 +55,11 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 }
 
 func Changelog(tag string) (string, error) {
-	return gitLog(fmt.Sprintf("tags/%s..HEAD", tag))
+	if tag == "" {
+		return gitLog("HEAD")
+	} else {
+		return gitLog(fmt.Sprintf("tags/%s..HEAD", tag))
+	}
 }
 
 func run(args ...string) (string, error) {
