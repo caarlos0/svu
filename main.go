@@ -19,7 +19,6 @@ var (
 	minorCmd            = app.Command("minor", "new minor version").Alias("m")
 	patchCmd            = app.Command("patch", "new patch version").Alias("p")
 	currentCmd          = app.Command("current", "prints current version").Alias("c")
-	commitPrefix        = app.Flag("commit-prefix", "Limits calculation based on commit type prefixes instead of considering all commit msgs").Strings()
 	metadata            = app.Flag("metadata", "discards pre-release and build metadata if set to false").Default("true").Bool()
 	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if set to false").Default("true").Bool()
@@ -59,7 +58,7 @@ func main() {
 	var result semver.Version
 	switch cmd {
 	case nextCmd.FullCommand():
-		result = findNext(current, tag, *commitPrefix)
+		result = findNext(current, tag)
 	case majorCmd.FullCommand():
 		result = current.IncMajor()
 	case minorCmd.FullCommand():
@@ -114,12 +113,10 @@ func unsetMetadata(current *semver.Version) *semver.Version {
 	return unsetBuild(unsetPreRelease(current))
 }
 
-func findNext(current *semver.Version, tag string, commitPrefixes []string) semver.Version {
+func findNext(current *semver.Version, tag string) semver.Version {
 	log, err := git.Changelog(tag)
 	app.FatalIfError(err, "failed to get changelog")
-	if len(commitPrefixes) > 0 {
-		log = svu.FilterCommits(log, commitPrefixes)
-	}
+
 	return svu.FindNext(current, *forcePatchIncrement, log)
 }
 
