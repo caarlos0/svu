@@ -141,6 +141,7 @@ func fakeGitRun(args ...string) (string, error) {
 		"-c", "user.name='svu'",
 		"-c", "user.email='svu@example.com'",
 		"-c", "commit.gpgSign=false",
+		"-c", "tag.gpgSign=false",
 		"-c", "log.showSignature=false",
 	}
 	allArgs = append(allArgs, args...)
