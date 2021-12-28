@@ -3,9 +3,10 @@ package git
 import (
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver"
 	"os/exec"
 	"strings"
+
+	"github.com/Masterminds/semver"
 )
 
 // type tagMode string
