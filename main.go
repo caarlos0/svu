@@ -23,7 +23,7 @@ var (
 	pattern             = ""
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if disabled (--no-pre-release)").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if disabled (--no-build)").Default("true").Bool()
-	prefix              = app.Flag("prefix", "set a custom prefix").String()
+	prefix              = app.Flag("prefix", "set a custom prefix").Default("v").String()
 	suffix              = app.Flag("suffix", "set a custom a custom suffix (metadata and/or prerelease)").String()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default(git.CurrentBranch).Enum(git.CurrentBranch, git.AllBranches)
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
