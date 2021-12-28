@@ -1,3 +1,6 @@
 dist
 ./svu
 ./svu.exe
+.idea
+.vscode
+

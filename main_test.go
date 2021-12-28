@@ -7,6 +7,8 @@ import (
 	"github.com/matryer/is"
 )
 
+var ver, _ = semver.NewVersion("v4.5.6")
+
 func TestBuildVersion(t *testing.T) {
 	t.Run("dev", func(t *testing.T) {
 		is.New(t).Equal("svu version dev", buildVersion("dev", "", "", ""))
@@ -25,17 +27,21 @@ func TestUnsetMetadata(t *testing.T) {
 }
 
 func TestStripPrefixReturnsVersionOnly(t *testing.T) {
-	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "", true) == "4.5.6")
+	is.New(t).True(getVersion("", ver, "") == "4.5.6")
 }
 
-func TestStripPrefixWhenNoPrefixReturnsVersionOnly(t *testing.T) {
-	is.New(t).True(getVersion("2.3.4", "v", "4.5.6", "", true) == "4.5.6")
+func TestStripPrefixWithVoldemort(t *testing.T) {
+	is.New(t).True(getVersion("voldemort-", ver, "") == "voldemort-4.5.6")
+}
+
+func TestStripPrefixWithVoldemortWithSuffix(t *testing.T) {
+	is.New(t).True(getVersion("voldemort-", ver, "beta+bla") == "voldemort-4.5.6-beta+bla")
 }
 
 func TestNoStripPrefixReturnsPrefixAndVersion(t *testing.T) {
-	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "", false) == "v4.5.6")
+	is.New(t).True(getVersion("v", ver, "") == "v4.5.6")
 }
 
 func TestSuffix(t *testing.T) {
-	is.New(t).True(getVersion("v2.3.4", "v", "4.5.6", "dev", false) == "v4.5.6-dev")
+	is.New(t).True(getVersion("v", ver, "dev") == "v4.5.6-dev")
 }

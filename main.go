@@ -13,20 +13,20 @@ import (
 )
 
 var (
-	app                 = kingpin.New("svu", "semantic version util")
-	nextCmd             = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
-	majorCmd            = app.Command("major", "new major version")
-	minorCmd            = app.Command("minor", "new minor version").Alias("m")
-	patchCmd            = app.Command("patch", "new patch version").Alias("p")
-	currentCmd          = app.Command("current", "prints current version").Alias("c")
-	metadata            = app.Flag("metadata", "discards pre-release and build metadata if disabled (--no-metadata)").Default("true").Bool()
-	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
+	app        = kingpin.New("svu", "semantic version util")
+	nextCmd    = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
+	majorCmd   = app.Command("major", "new major version")
+	minorCmd   = app.Command("minor", "new minor version").Alias("m")
+	patchCmd   = app.Command("patch", "new patch version").Alias("p")
+	currentCmd = app.Command("current", "prints current version").Alias("c")
+	metadata   = app.Flag("metadata", "discards pre-release and build metadata if disabled (--no-metadata)").Default("true").Bool()
+	//pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").Default("").String()
+	pattern             = ""
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if disabled (--no-pre-release)").Default("true").Bool()
 	build               = app.Flag("build", "discards build metadata if disabled (--no-build)").Default("true").Bool()
-	prefix              = app.Flag("prefix", "set a custom prefix").Default("v").String()
+	prefix              = app.Flag("prefix", "set a custom prefix").String()
 	suffix              = app.Flag("suffix", "set a custom a custom suffix (metadata and/or prerelease)").String()
-	stripPrefix         = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
-	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
+	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default(git.CurrentBranch).Enum(git.CurrentBranch, git.AllBranches)
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
 )
 
@@ -37,10 +37,13 @@ func main() {
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	tag, err := git.DescribeTag(*tagMode, *pattern)
+	if pattern == "" && *prefix != "" {
+		pattern = *prefix + "*"
+	}
+	tag, err := git.GetTag(*tagMode, pattern)
 	app.FatalIfError(err, "failed to get current tag for repo")
 
-	current, err := getCurrentVersion(tag)
+	current, err := git.GetSemVer(tag, *prefix)
 	app.FatalIfError(err, "could not get current version from tag: '%s'", tag)
 
 	if !*metadata {
@@ -69,32 +72,19 @@ func main() {
 		result = *current
 	}
 
-	result.SetMetadata(current.Metadata())
-	result.SetPrerelease(current.Prerelease())
-	fmt.Println(getVersion(tag, *prefix, result.String(), *suffix, *stripPrefix))
+	_, _ = result.SetMetadata(current.Metadata())
+	_, _ = result.SetPrerelease(current.Prerelease())
+	fmt.Println(getVersion(*prefix, &result, *suffix))
 }
 
-func getCurrentVersion(tag string) (*semver.Version, error) {
-	var current *semver.Version
-	var err error
-	if tag == "" {
-		current, err = semver.NewVersion(strings.TrimPrefix("0.0.0", *prefix))
-	} else {
-		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
-	}
-	return current, err
-}
-
-func getVersion(tag, prefix, result, suffix string, stripPrefix bool) string {
-	if stripPrefix {
-		prefix = ""
-	}
+func getVersion(prefix string, result *semver.Version, suffix string) string {
+	r := strings.TrimPrefix(result.String(), "v")
 
 	if suffix != "" {
-		result = result + "-" + suffix
+		suffix = "-" + suffix
 	}
 
-	return prefix + result
+	return prefix + r + suffix
 }
 
 func unsetPreRelease(current *semver.Version) *semver.Version {
