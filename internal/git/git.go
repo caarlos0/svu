@@ -16,14 +16,13 @@ const AllBranches = "all-branches"
 
 const DefaultSort = "-version:refname"
 
-// copied from goreleaser
-
 // IsRepo returns true if current folder is a git repository
 func IsRepo() bool {
 	out, err := run([]string{"rev-parse", "--is-inside-work-tree"})
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
+// getTags returns all tags
 func getTags(tagMode, sort, pattern string) ([]string, error) {
 
 	a := []string{"tag"}
@@ -48,6 +47,7 @@ func getTags(tagMode, sort, pattern string) ([]string, error) {
 
 }
 
+// GetTag returns latest tag
 func GetTag(tagMode, pattern string) (string, error) {
 	tags, err := getTags(tagMode, DefaultSort, pattern)
 	if err != nil {
@@ -65,6 +65,7 @@ func Changelog(tag string) (string, error) {
 	}
 }
 
+// run command will exec git with args
 func run(args []string) (string, error) {
 	args = append([]string{"-c", "log.showSignature=false"}, args...)
 	//log.Println("git", strings.Join(args, " "))
@@ -83,6 +84,7 @@ func gitLog(refs ...string) (string, error) {
 	return run(args)
 }
 
+// GetSemVer transform string -> SemVer
 func GetSemVer(tag, prefix string) (current *semver.Version, err error) {
 	if tag == "" {
 		tag = "0.0.0"
