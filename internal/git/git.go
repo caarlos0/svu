@@ -25,6 +25,17 @@ func getAllTags(args ...string) ([]string, error) {
 	return strings.Split(tags, "\n"), nil
 }
 
+type ErrNoTagsFound struct {
+	Pattern string
+}
+
+func (e ErrNoTagsFound) Error() string {
+	if e.Pattern == "" {
+		return "no tags found"
+	}
+	return fmt.Sprintf("no tags match '%s'", e.Pattern)
+}
+
 func DescribeTag(tagMode string, pattern string) (string, error) {
 	args := []string{}
 	if tagMode == "current-branch" {
@@ -36,7 +47,7 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	}
 
 	if len(tags) == 0 {
-		return "", nil
+		return "", &ErrNoTagsFound{}
 	}
 	if pattern == "" {
 		return tags[0], nil
@@ -51,7 +62,7 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 			return tag, nil
 		}
 	}
-	return "", fmt.Errorf("no tags match '%s'", pattern)
+	return "", &ErrNoTagsFound{pattern}
 }
 
 func Changelog(tag string) (string, error) {
