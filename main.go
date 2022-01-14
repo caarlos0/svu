@@ -20,6 +20,7 @@ var (
 	minorCmd            = app.Command("minor", "new minor version").Alias("m")
 	patchCmd            = app.Command("patch", "new patch version").Alias("p")
 	currentCmd          = app.Command("current", "prints current version").Alias("c")
+	initial             = app.Flag("initial", "initial version to use if no tags found").Default("0.0.0").String()
 	metadata            = app.Flag("metadata", "discards pre-release and build metadata if disabled (--no-metadata)").Default("true").Bool()
 	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	preRelease          = app.Flag("pre-release", "discards pre-release metadata if disabled (--no-pre-release)").Default("true").Bool()
@@ -41,7 +42,7 @@ func main() {
 	tag, err := git.DescribeTag(*tagMode, *pattern)
 	var errNoTagsFound *git.ErrNoTagsFound
 	if errors.As(err, &errNoTagsFound) {
-		tag = "0.0.0"
+		tag = *initial
 	} else {
 		app.FatalIfError(err, "failed to get current tag for repo")
 	}
