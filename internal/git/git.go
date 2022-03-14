@@ -18,7 +18,7 @@ func IsRepo() bool {
 }
 
 func getAllTags(args ...string) ([]string, error) {
-	tags, err := run(append([]string{"tag", "--sort=-version:refname"}, args...)...)
+	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
 	if err != nil {
 		return nil, err
 	}
