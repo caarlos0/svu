@@ -72,10 +72,16 @@ func TestIsPatch(t *testing.T) {
 }
 
 func TestFindNext(t *testing.T) {
+	version0a := semver.MustParse("v0.4.5")
+	version0b := semver.MustParse("v0.5.5")
 	version1 := semver.MustParse("v1.2.3")
 	version2 := semver.MustParse("v2.4.12")
 	version3 := semver.MustParse("v3.4.5-beta34+ads")
 	for expected, next := range map[string]semver.Version{
+		"v0.4.5": FindNext(version0a, false, "chore: should do nothing"),
+		"v0.4.6": FindNext(version0a, false, "fix: inc patch"),
+		"v0.5.0": FindNext(version0a, false, "feat: inc minor"),
+		"v0.6.0": FindNext(version0b, false, "feat!: inc minor"),
 		"v1.2.3": FindNext(version1, false, "chore: should do nothing"),
 		"v1.2.4": FindNext(version1, true, "chore: is forcing patch, so should inc patch"),
 		"v1.3.0": FindNext(version1, false, "feat: inc major"),
