@@ -27,6 +27,9 @@ func isPatch(log string) bool {
 
 func FindNext(current *semver.Version, forcePatchIncrement bool, log string) semver.Version {
 	if isBreaking(log) {
+		if current.Major() == 0 {
+			return current.IncMinor()
+		}
 		return current.IncMajor()
 	}
 
