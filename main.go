@@ -19,13 +19,11 @@ var (
 	minorCmd            = app.Command("minor", "new minor version").Alias("m")
 	patchCmd            = app.Command("patch", "new patch version").Alias("p")
 	currentCmd          = app.Command("current", "prints current version").Alias("c")
-	metadata            = app.Flag("metadata", "discards pre-release and build metadata if disabled (--no-metadata)").Default("true").Bool()
 	pattern             = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
-	preRelease          = app.Flag("pre-release", "discards pre-release metadata if disabled (--no-pre-release)").Default("true").Bool()
-	build               = app.Flag("build", "discards build metadata if disabled (--no-build)").Default("true").Bool()
 	prefix              = app.Flag("prefix", "set a custom prefix").Default("v").String()
-	suffix              = app.Flag("suffix", "set a custom a custom suffix (metadata and/or prerelease)").String()
 	stripPrefix         = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
+	preRelease          = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").String()
+	build               = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").String()
 	tagMode             = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").Default("current-branch").Enum("current-branch", "all-branches")
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").Default("false").Bool()
 )
@@ -43,18 +41,16 @@ func main() {
 	current, err := getCurrentVersion(tag)
 	app.FatalIfError(err, "could not get current version from tag: '%s'", tag)
 
-	if !*metadata {
-		current = unsetMetadata(current)
-	}
+	result, err := nextVersion(cmd, current, tag, *preRelease, *build)
+	app.FatalIfError(err, "could not get next tag: '%s'", tag)
 
-	if !*preRelease {
-		current = unsetPreRelease(current)
+	if *stripPrefix {
+		fmt.Println(result.String())
 	}
+	fmt.Println(*prefix + result.String())
+}
 
-	if !*build {
-		current = unsetBuild(current)
-	}
-
+func nextVersion(cmd string, current *semver.Version, tag, preRelease, build string) (semver.Version, error) {
 	var result semver.Version
 	switch cmd {
 	case nextCmd.FullCommand():
@@ -69,9 +65,16 @@ func main() {
 		result = *current
 	}
 
-	result.SetMetadata(current.Metadata())
-	result.SetPrerelease(current.Prerelease())
-	fmt.Println(getVersion(tag, *prefix, result.String(), *suffix, *stripPrefix))
+	var err error
+	result, err = result.SetPrerelease(preRelease)
+	if err != nil {
+		return result, err
+	}
+	result, err = result.SetMetadata(build)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
 }
 
 func getCurrentVersion(tag string) (*semver.Version, error) {
@@ -83,34 +86,6 @@ func getCurrentVersion(tag string) (*semver.Version, error) {
 		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
 	}
 	return current, err
-}
-
-func getVersion(tag, prefix, result, suffix string, stripPrefix bool) string {
-	if stripPrefix {
-		prefix = ""
-	}
-
-	if suffix != "" {
-		result = result + "-" + suffix
-	}
-
-	return prefix + result
-}
-
-func unsetPreRelease(current *semver.Version) *semver.Version {
-	newV, _ := current.SetPrerelease("")
-
-	return &newV
-}
-
-func unsetBuild(current *semver.Version) *semver.Version {
-	newV, _ := current.SetMetadata("")
-
-	return &newV
-}
-
-func unsetMetadata(current *semver.Version) *semver.Version {
-	return unsetBuild(unsetPreRelease(current))
 }
 
 func findNext(current *semver.Version, tag string) semver.Version {
