@@ -1,6 +1,6 @@
 # svu
 
-[![Build Status](https://img.shields.io/github/workflow/status/caarlos0/svu/build?style=for-the-badge)](https://github.com/caarlos0/svu/actions?workflow=build)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/caarlos0/svu/build.yml?style=for-the-badge)](https://github.com/caarlos0/svu/actions?workflow=build)
 
 Semantic Version Util is a tool to manage semantic versions at ease!
 
