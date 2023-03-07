@@ -156,6 +156,15 @@ sudo yum install svu
 docker run --rm -v $PWD:/tmp --workdir /tmp ghcr.io/caarlos0/svu --help
 ```
 
+### Using `go install`
+
+Make sure that `$GOPATH/bin` is in your `$PATH`, because that's where this gets
+installed:
+
+```bash
+go install github.com/caarlos0/svu@latest
+```
+
 #### manually
 
 Or download one from the [releases tab](https://github.com/caarlos0/svu/releases) and install manually.
