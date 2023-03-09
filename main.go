@@ -41,7 +41,7 @@ func main() {
 	current, err := getCurrentVersion(tag)
 	app.FatalIfError(err, "could not get current version from tag: '%s'", tag)
 
-	result, err := nextVersion(cmd, current, tag, *preRelease, *build)
+	result, err := nextVersion(cmd, current, tag, *preRelease, *build, *forcePatchIncrement)
 	app.FatalIfError(err, "could not get next tag: '%s'", tag)
 
 	if *stripPrefix {
@@ -50,7 +50,23 @@ func main() {
 	fmt.Println(*prefix + result.String())
 }
 
-func nextVersion(cmd string, current *semver.Version, tag, preRelease, build string) (semver.Version, error) {
+func nextVersion(cmd string, current *semver.Version, tag, preRelease, build string, force bool) (semver.Version, error) {
+	if cmd == currentCmd.FullCommand() {
+		return *current, nil
+	}
+
+	if force {
+		c, err := current.SetMetadata("")
+		if err != nil {
+			return c, err
+		}
+		c, err = c.SetPrerelease("")
+		if err != nil {
+			return c, err
+		}
+		current = &c
+	}
+
 	var result semver.Version
 	switch cmd {
 	case nextCmd.FullCommand():
@@ -61,8 +77,6 @@ func nextVersion(cmd string, current *semver.Version, tag, preRelease, build str
 		result = current.IncMinor()
 	case patchCmd.FullCommand():
 		result = current.IncPatch()
-	case currentCmd.FullCommand():
-		result = *current
 	}
 
 	var err error
