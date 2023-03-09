@@ -92,6 +92,12 @@ func TestCmd(t *testing.T) {
 			is.NoErr(err)
 			is.Equal("1.2.4-alpha.2+10", v.String())
 		})
+		t.Run("previous had meta, change it", func(t *testing.T) {
+			is := is.New(t)
+			v, err := nextVersion(cmd, semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", "alpha.2", "10", false)
+			is.NoErr(err)
+			is.Equal("1.2.3-alpha.2+10", v.String())
+		})
 		t.Run("build", func(t *testing.T) {
 			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3"), "v1.2.3", "", "124", false)

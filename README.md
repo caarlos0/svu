@@ -33,44 +33,83 @@ v1.3.0
 
 ### `svu current`
 
-Prints the latest tag.
+Prints the current tag with no changes.
 
 > alias: `svu c`
+
+**Examples:**
 
 ```sh
 $ svu current
 v1.2.3
+
+$ svu current
+v1.2.3-alpha.1+22
 ```
 
 ### `svu major`
 
 Increases the major of the latest tag and prints it.
+As per the [Semver][] spec, it'll also clear the `pre-release` and `build`
+identifiers are cleaned up.
+
+**Examples:**
 
 ```sh
+$ svu current
+v1.2.3-alpha.2+123
+
 $ svu major
 v2.0.0
+
+$ svu major --pre-release alpha.3 --build 243
+v2.0.0-alpha.3+243
 ```
 
 ### `svu minor`
 
 Increases the minor of the latest tag and prints it.
+As per the [Semver][] spec, it'll also clear the `pre-release` and `build`
+identifiers are cleaned up.
 
 > alias: `svu m`
 
+**Examples:**
+
 ```sh
+$ svu current
+v1.2.3-alpha.2+123
+
 $ svu minor
 v1.3.0
+
+$ svu minor --pre-release alpha.3 --build 243
+v1.3.0-alpha.3+243
 ```
 
 ### `svu patch`
 
 Increases the patch of the latest tag and prints it.
+As per the [Semver][] spec, if the version has a `pre-release` or `build`
+identifier, they'll be cleaned up and no patch increment will be made.
+You can force an increment by using `--force-patch-increment`.
 
 > alias: `svu p`
 
+**Examples:**
+
 ```sh
+$ svu current
+v1.2.3-alpha.2+123
+
 $ svu patch
+v1.2.3
+
+$ svu patch --force-patch-increment
 v1.2.4
+
+$ svu patch --pre-release alpha.3 --build 243
+v1.2.3-alpha.3+243
 ```
 
 ## tag mode
@@ -82,16 +121,6 @@ By default `svu` will get the latest tag from the current branch. Using the `--t
 | `--tag-mode current-branch` | Get latest tag from current branch.  | `git describe --tags --abbrev=0`                           |
 | `--tag-mode all-branches`   | Get latest tag across all branches. | `git describe --tags $(git rev-list --tags --max-count=1)` |
 
-## discarding pre-release and build metadata
-
-To discard [pre-release](https://semver.org/#spec-item-9) and/or [build metadata](https://semver.org/#spec-item-10) information you can run your command of choice with the following flags:
-
-| Flag               | Description                              | Example                                  |
-| ------------------ | ---------------------------------------- | ---------------------------------------- |
-| `--no-metadata`    | Discards pre-release and build metadata. | `v1.0.0-alpha+build.f902daf` -> `v1.0.0` |
-| `--no-pre-release` | Discards pre-release metadata.           | `v1.0.0-alpha` -> `v1.0.0`               |
-| `--no-build`       | Discards build metadata.                 | `v1.0.0+build.f902daf` -> `v1.0.0`       |
-
 ## stripping the tag prefix
 
 `--strip-prefix` removes any prefix from the version output.
@@ -102,7 +131,8 @@ So for `--prefix=foo/v --strip-prefix` and tag `foo/v1.2.3`, the output would be
 
 ## adding a suffix
 
-`--suffix` can be used to set a custom suffix for the tag, e.g. build metadata or prelease.
+You can use `--pre-release` and `--build` to set the respective [Semver][]
+identifiers to the resulting version.
 
 ## force patch version increment
 
@@ -172,3 +202,5 @@ Or download one from the [releases tab](https://github.com/caarlos0/svu/releases
 ## stargazers over time
 
 [![Stargazers over time](https://starchart.cc/caarlos0/svu.svg)](https://starchart.cc/caarlos0/svu)
+
+[Semver]: https://semver.org
