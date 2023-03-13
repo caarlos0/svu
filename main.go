@@ -46,6 +46,7 @@ func main() {
 
 	if *stripPrefix {
 		fmt.Println(result.String())
+		return
 	}
 	fmt.Println(*prefix + result.String())
 }
