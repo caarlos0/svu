@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	breaking     = regexp.MustCompile("(?im).*breaking change:.*")
+	breaking     = regexp.MustCompile("(?m).*BREAKING[ -]CHANGE:.*")
 	breakingBang = regexp.MustCompile(`(?im).*(\w+)(\(.*\))?!:.*`)
 	feature      = regexp.MustCompile(`(?im).*feat(\(.*\))?:.*`)
 	patch        = regexp.MustCompile(`(?im).*fix(\(.*\))?:.*`)

@@ -12,6 +12,7 @@ func TestIsBreaking(t *testing.T) {
 		"feat!: foo",
 		"chore(lala)!: foo",
 		"docs: lalala\nBREAKING CHANGE: lalal",
+		"docs: lalala\nBREAKING-CHANGE: lalal",
 	} {
 		t.Run(log, func(t *testing.T) {
 			is.New(t).True(isBreaking(log)) // should be a major change
@@ -22,6 +23,9 @@ func TestIsBreaking(t *testing.T) {
 		"feat: foo",
 		"chore(lol): foo",
 		"docs: lalala",
+		"docs: BREAKING change: lalal",
+		"docs: breaking-change: aehijhk",
+		"docs: BREAKING_CHANGE: foo",
 	} {
 		t.Run(log, func(t *testing.T) {
 			is.New(t).True(!isBreaking(log)) // should NOT be a major change
