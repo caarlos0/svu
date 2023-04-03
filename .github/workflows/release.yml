@@ -33,7 +33,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: sigstore/cosign-installer@v3.0.1
-      - uses: anchore/sbom-action/download-syft@v0.13.4
+      - uses: anchore/sbom-action/download-syft@v0.14.1
       - uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser-pro
