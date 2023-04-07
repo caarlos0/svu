@@ -15,7 +15,7 @@ Based on the log between the latest tag and `HEAD`, prints the next tag.
 
 > aliases: `svu next` and `svu n`
 
-```sh
+```bash
 $ svu
 v1.3.0
 ```
@@ -39,7 +39,7 @@ Prints the current tag with no changes.
 
 **Examples:**
 
-```sh
+```bash
 $ svu current
 v1.2.3
 
@@ -55,7 +55,7 @@ identifiers are cleaned up.
 
 **Examples:**
 
-```sh
+```bash
 $ svu current
 v1.2.3-alpha.2+123
 
@@ -76,7 +76,7 @@ identifiers are cleaned up.
 
 **Examples:**
 
-```sh
+```bash
 $ svu current
 v1.2.3-alpha.2+123
 
@@ -98,7 +98,7 @@ You can force an increment by using `--force-patch-increment`.
 
 **Examples:**
 
-```sh
+```bash
 $ svu current
 v1.2.3-alpha.2+123
 
@@ -153,9 +153,11 @@ So, whenever I want to create a tag, I just run `gtn`.
 
 ## install
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/svu.svg)](https://repology.org/project/svu/versions)
+
 ### macOS
 
-```sh
+```bash
 brew install caarlos0/tap/svu
 ```
 
@@ -163,7 +165,7 @@ brew install caarlos0/tap/svu
 
 #### apt
 
-```sh
+```bash
 echo 'deb [trusted=yes] https://apt.fury.io/caarlos0/ /' | sudo tee /etc/apt/sources.list.d/caarlos0.list
 sudo apt update
 sudo apt install svu
@@ -171,7 +173,7 @@ sudo apt install svu
 
 #### yum
 
-```sh
+```bash
 echo '[caarlos0]
 name=caarlos0
 baseurl=https://yum.fury.io/caarlos0/
@@ -182,7 +184,7 @@ sudo yum install svu
 
 ### docker
 
-```sh
+```bash
 docker run --rm -v $PWD:/tmp --workdir /tmp ghcr.io/caarlos0/svu --help
 ```
 
