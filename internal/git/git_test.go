@@ -2,6 +2,7 @@ package git
 
 import (
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -84,7 +85,7 @@ func TestChangelog(t *testing.T) {
 		gitCommit(t, msg)
 	}
 	is := is.New(t)
-	log, err := Changelog("v1.2.3")
+	log, err := Changelog("v1.2.3", "")
 	is.NoErr(err)
 	for _, msg := range []string{
 		"chore: foobar",
@@ -93,6 +94,25 @@ func TestChangelog(t *testing.T) {
 	} {
 		is.True(strings.Contains(log, msg)) // log should contain commit
 	}
+}
+
+func TestChangelogWithDirectory(t *testing.T) {
+	tempDir := tempdir(t)
+	localDir := dir(tempDir, t)
+	file := tempfile(t, localDir)
+	gitInit(t)
+	gitCommit(t, "chore: foobar")
+	gitCommit(t, "lalalala")
+	gitTag(t, "v1.2.3")
+	gitCommit(t, "feat: foobar")
+	gitAdd(t, file)
+	gitCommit(t, "chore: filtered dir")
+	is := is.New(t)
+	log, err := Changelog("v1.2.3", localDir)
+	is.NoErr(err)
+
+	is.True(strings.Contains(log, "chore: filtered dir"))
+	is.True(!strings.Contains(log, "feat: foobar"))
 }
 
 func switchToBranch(tb testing.TB, branch string) {
@@ -119,13 +139,19 @@ func gitCommit(tb testing.TB, msg string) {
 	is.NoErr(err)
 }
 
+func gitAdd(tb testing.TB, path string) {
+	is := is.New(tb)
+	_, err := fakeGitRun("add", path)
+	is.NoErr(err)
+}
+
 func gitInit(tb testing.TB) {
 	is := is.New(tb)
 	_, err := fakeGitRun("init")
 	is.NoErr(err)
 }
 
-func tempdir(tb testing.TB) {
+func tempdir(tb testing.TB) string {
 	is := is.New(tb)
 	previous, err := os.Getwd()
 	is.NoErr(err)
@@ -135,6 +161,24 @@ func tempdir(tb testing.TB) {
 	dir := tb.TempDir()
 	is.NoErr(os.Chdir(dir))
 	tb.Logf("cd into %s", dir)
+	return dir
+}
+
+func dir(tempDir string, tb testing.TB) string {
+	is := is.New(tb)
+	createdDir := path.Join(tempDir, "a-folder")
+	err := os.Mkdir(createdDir, 0755)
+	is.NoErr(err)
+	return createdDir
+}
+
+func tempfile(tb testing.TB, dir string) string {
+	is := is.New(tb)
+	d1 := []byte("hello\ngo\n")
+	file := path.Join(dir, "a-file.txt")
+	err := os.WriteFile(file, d1, 0644)
+	is.NoErr(err)
+	return file
 }
 
 func fakeGitRun(args ...string) (string, error) {
