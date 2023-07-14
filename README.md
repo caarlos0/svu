@@ -92,7 +92,7 @@ v1.3.0-alpha.3+243
 Increases the patch of the latest tag and prints it.
 As per the [Semver][] spec, if the version has a `pre-release` or `build`
 identifier, they'll be cleaned up and no patch increment will be made.
-You can force an increment by using `--force-patch-increment`.
+You can force a patch increment by using `svu next --force-patch-increment`.
 
 > alias: `svu p`
 
@@ -105,11 +105,11 @@ v1.2.3-alpha.2+123
 $ svu patch
 v1.2.3
 
-$ svu patch --force-patch-increment
-v1.2.4
-
 $ svu patch --pre-release alpha.3 --build 243
 v1.2.3-alpha.3+243
+
+$ svu next --force-patch-increment
+v1.2.4
 ```
 
 ## tag mode
@@ -137,6 +137,12 @@ identifiers to the resulting version.
 ## force patch version increment
 
 Setting the `--force-patch-increment` flag forces a patch version increment regardless of the commit message content.
+
+**Example:**
+
+```bash
+svu next --force-patch-increment
+```
 
 ## creating tags
 
