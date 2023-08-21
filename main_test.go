@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/Masterminds/semver"
@@ -158,4 +159,93 @@ func TestCmd(t *testing.T) {
 			is.True(err != nil)
 		})
 	})
+}
+
+func Test_nextPreRelease(t *testing.T) {
+	type args struct {
+		current    *semver.Version
+		next       *semver.Version
+		preRelease string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    semver.Version
+		wantErr bool
+	}{
+		{
+			name: "no current suffix and no suffix supplied",
+			args: args{
+				current:    semver.MustParse("1.2.3"),
+				next:       semver.MustParse("1.3.0"),
+				preRelease: "",
+			},
+			want:    *semver.MustParse("1.3.0"),
+			wantErr: true,
+		},
+		{
+			name: "supplied suffix overrides current suffix",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.1"),
+				next:       semver.MustParse("1.3.0"),
+				preRelease: "beta",
+			},
+			want:    *semver.MustParse("1.3.0-beta.0"),
+			wantErr: false,
+		},
+		{
+			name: "current suffix is incremented",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.11"),
+				next:       semver.MustParse("1.2.3"),
+				preRelease: "",
+			},
+			want:    *semver.MustParse("1.2.3-alpha.12"),
+			wantErr: false,
+		},
+		{
+			name: "current suffix is incremented when supplied suffix matches current",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.11"),
+				next:       semver.MustParse("1.2.3"),
+				preRelease: "alpha",
+			},
+			want:    *semver.MustParse("1.2.3-alpha.12"),
+			wantErr: false,
+		},
+		{
+			name: "pre release version resets if next version changes",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.11"),
+				next:       semver.MustParse("1.2.4"),
+				preRelease: "alpha",
+			},
+			want:    *semver.MustParse("1.2.4-alpha.0"),
+			wantErr: false,
+		},
+		{
+			name: "increments a current tag that has build metadata",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.1+build.43"),
+				next:       semver.MustParse("1.2.3"),
+				preRelease: "",
+			},
+			want:    *semver.MustParse("1.2.3-alpha.2"),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := nextPreRelease(tt.args.current, tt.args.next, tt.args.preRelease)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("nextPreRelease() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("nextPreRelease() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
