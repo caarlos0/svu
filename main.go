@@ -4,12 +4,8 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strconv"
-	"strings"
 
-	"github.com/Masterminds/semver"
 	"github.com/alecthomas/kingpin"
-	"github.com/caarlos0/svu/internal/git"
 	"github.com/caarlos0/svu/internal/svu"
 )
 
@@ -45,136 +41,19 @@ func main() {
 	app.HelpFlag.Short('h')
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	tag, err := git.DescribeTag(*tagMode, *pattern)
-	app.FatalIfError(err, "failed to get current tag for repo")
-
-	current, err := getCurrentVersion(tag)
-	app.FatalIfError(err, "could not get current version from tag: '%s'", tag)
-
-	result, err := nextVersion(cmd, current, tag, *preRelease, *build, *forcePatchIncrement)
-	app.FatalIfError(err, "could not get next tag: '%s'", tag)
-
-	if *stripPrefix {
-		fmt.Println(result.String())
-		return
-	}
-	fmt.Println(*prefix + result.String())
-}
-
-func nextVersion(cmd string, current *semver.Version, tag, preRelease, build string, force bool) (semver.Version, error) {
-	if cmd == currentCmd.FullCommand() {
-		return *current, nil
-	}
-
-	if force {
-		c, err := current.SetMetadata("")
-		if err != nil {
-			return c, err
-		}
-		c, err = c.SetPrerelease("")
-		if err != nil {
-			return c, err
-		}
-		current = &c
-	}
-
-	var result semver.Version
-	switch cmd {
-	case nextCmd.FullCommand():
-		result = findNext(current, tag, *directory)
-	case majorCmd.FullCommand():
-		result = current.IncMajor()
-	case minorCmd.FullCommand():
-		result = current.IncMinor()
-	case patchCmd.FullCommand():
-		result = current.IncPatch()
-	}
-
-	var err error
-	if cmd == preReleaseCmd.FullCommand() {
-		next := findNext(current, tag, *directory)
-		result, err = nextPreRelease(current, &next, preRelease)
-		if err != nil {
-			return result, err
-		}
-	} else {
-		result, err = result.SetPrerelease(preRelease)
-		if err != nil {
-			return result, err
-		}
-	}
-
-	result, err = result.SetMetadata(build)
-	if err != nil {
-		return result, err
-	}
-	return result, nil
-}
-
-func nextPreRelease(current, next *semver.Version, preRelease string) (semver.Version, error) {
-	suffix := ""
-	if preRelease != "" {
-		// Check if the suffix already contains a version number, if it does assume the user wants to explicitly set the version so use that
-		splitPreRelease := strings.Split(preRelease, ".")
-		if len(splitPreRelease) > 1 {
-			if _, err := strconv.Atoi(splitPreRelease[len(splitPreRelease)-1]); err == nil {
-				return current.SetPrerelease(preRelease)
-			}
-		}
-
-		suffix = preRelease
-
-		// Check if the prerelease suffix is the same as the current prerelease
-		preSuffix := strings.Split(current.Prerelease(), ".")[0]
-		if preSuffix == preRelease {
-			suffix = current.Prerelease()
-		}
-	} else if current.Prerelease() != "" {
-		suffix = current.Prerelease()
-	} else {
-		return *current, fmt.Errorf(
-			"--pre-release suffix is required to calculate next pre-release version as suffix could not be determined from current version: %s",
-			current.String(),
-		)
-	}
-
-	splitSuffix := strings.Split(suffix, ".")
-	preReleaseName := splitSuffix[0]
-	preReleaseVersion := 0
-
-	currentWithoutPreRelease, _ := current.SetPrerelease("")
-
-	if !next.GreaterThan(&currentWithoutPreRelease) {
-		preReleaseVersion = -1
-		if len(splitSuffix) == 2 {
-			preReleaseName = splitSuffix[0]
-			preReleaseVersion, _ = strconv.Atoi(splitSuffix[1])
-		} else if len(splitSuffix) > 2 {
-			preReleaseName = splitSuffix[len(splitSuffix)-1]
-		}
-
-		preReleaseVersion++
-	}
-
-	return next.SetPrerelease(fmt.Sprintf("%s.%d", preReleaseName, preReleaseVersion))
-}
-
-func getCurrentVersion(tag string) (*semver.Version, error) {
-	var current *semver.Version
-	var err error
-	if tag == "" {
-		current, err = semver.NewVersion(strings.TrimPrefix("0.0.0", *prefix))
-	} else {
-		current, err = semver.NewVersion(strings.TrimPrefix(tag, *prefix))
-	}
-	return current, err
-}
-
-func findNext(current *semver.Version, tag string, directory string) semver.Version {
-	log, err := git.Changelog(tag, directory)
-	app.FatalIfError(err, "failed to get changelog")
-
-	return svu.FindNext(current, *forcePatchIncrement, log)
+	version, err := svu.Version(svu.Options{
+		Cmd:                 cmd,
+		Pattern:             *pattern,
+		Prefix:              *prefix,
+		StripPrefix:         *stripPrefix,
+		PreRelease:          *preRelease,
+		Build:               *build,
+		Directory:           *directory,
+		TagMode:             *tagMode,
+		ForcePatchIncrement: *forcePatchIncrement,
+	})
+	app.FatalIfError(err, "")
+	fmt.Println(version)
 }
 
 // nolint: gochecknoglobals

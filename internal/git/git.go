@@ -9,6 +9,11 @@ import (
 	"github.com/gobwas/glob"
 )
 
+const (
+	AllBranchesTagMode   = "all-branches"
+	CurrentBranchTagMode = "current-branch"
+)
+
 // copied from goreleaser
 
 // IsRepo returns true if current folder is a git repository
@@ -27,7 +32,7 @@ func getAllTags(args ...string) ([]string, error) {
 
 func DescribeTag(tagMode string, pattern string) (string, error) {
 	args := []string{}
-	if tagMode == "current-branch" {
+	if tagMode == CurrentBranchTagMode {
 		args = []string{"--merged"}
 	}
 	tags, err := getAllTags(args...)
