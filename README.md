@@ -229,6 +229,62 @@ go install github.com/caarlos0/svu@latest
 
 Or download one from the [releases tab](https://github.com/caarlos0/svu/releases) and install manually.
 
+## use as library
+
+You can use `svu` as a library without the need to install the binary. For example to use it from a magefile:
+
+```go
+//go:build mage
+// +build mage
+
+package main
+
+import (
+	"github.com/caarlos0/svu/pkg/svu"
+	"github.com/magefile/mage/sh"
+	"strings"
+)
+
+// Tag the current commit with the proper next semver.
+func Version() error {
+	v, err := svu.Next()
+	if err != nil {
+		return err
+	}
+	return sh.RunV("git", "tag", "-a", v, "-m", strings.Replace(v, "v", "Version ", 1))
+}
+```
+
+### commands
+
+All commands are available with a function named accordingly:
+
+- `svu.Next()`
+- `svu.Current()`
+- `svu.Major()`
+- `svu.Minor()`
+- `svu.Patch()`
+- `svu.PreRelease()`
+
+### options
+
+All flags have a matching option function to configure the previous commands beyond their default bahavior:
+
+- `svu.Current(svu.WithPattern("p*"))`
+- `svu.Next(svu.WithPrefix("ver"))`
+- `svu.Major(svu.StripPrefix())`
+- `svu.Minor(svu.WithPreRelease("pre"))`
+- `svu.Patch(svu.WithBuild("3"))`
+- `svu.Next(svu.WithDirectory("internal"))`
+- `svu.Next(svu.WithTagMode(svu.AllBranches))` or `svu.Next(svu.ForAllBranches())`
+- `svu.Next(svu.WithTagMode(svu.CurrentBranch))` or `svu.Next(svu.ForCurrentBranch())`
+- `svu.Next(svu.ForcePatchIncrement())`
+
+Or multiple options:
+
+- `svu.Next(svu.WithPreRelease("pre"), svu.WithBuild("3"), svu.StripPrefix())`
+- `svu.PreRelease(svu.WithPreRelease("alpha.33"), svu.WithBuild("243"))`
+
 ## stargazers over time
 
 [![Stargazers over time](https://starchart.cc/caarlos0/svu.svg)](https://starchart.cc/caarlos0/svu)
