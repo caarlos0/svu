@@ -22,13 +22,13 @@ var (
 	currentCmd    = app.Command("current", "prints current version").Alias("c")
 	preReleaseCmd = app.Command("prerelease", "new pre release version based on the next version calculated from git log").
 			Alias("pr")
+	preRelease = preReleaseCmd.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
+			String()
 	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	prefix      = app.Flag("prefix", "set a custom prefix").Default("v").String()
 	stripPrefix = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
-	preRelease  = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
+	build       = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").
 			String()
-	build = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").
-		String()
 	directory = app.Flag("directory", "specifies directory to filter commit messages by").Default("").String()
 	tagMode   = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").
 			Default("current-branch").
