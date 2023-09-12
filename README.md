@@ -112,6 +112,28 @@ $ svu next --force-patch-increment
 v1.2.4
 ```
 
+### `svu prerelease`
+
+Increases the pre-release of the latest tag and prints it. If a `pre-release`
+identifier is passed in and it differs from the current pre-release tag that
+the identifier passed in will be used. If the current tag is not a pre-release
+tag then passing in `--pre-release` is required.
+
+> alias: `svu pr`
+
+**Examples:**
+
+```bash
+$ svu current
+v1.2.3-alpha.2+123
+
+$ svu prerelease
+v1.2.3-alpha.3
+
+$ svu prerelease --pre-release alpha.33 --build 243
+v1.2.3-alpha.33+243
+```
+
 ## tag mode
 
 By default `svu` will get the latest tag from the current branch. Using the `--tag-mode` flag this behaviour can be altered:
