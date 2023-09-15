@@ -115,9 +115,13 @@ func nextPreRelease(current, next *semver.Version, preRelease string) (semver.Ve
 	suffix := ""
 	if preRelease != "" {
 		// Check if the suffix already contains a version number, if it does assume the user wants to explicitly set the version so use that
-		if _, err := strconv.Atoi(suffix); err == nil {
-			return current.SetPrerelease(suffix)
+		splitPreRelease := strings.Split(preRelease, ".")
+		if len(splitPreRelease) > 1 {
+			if _, err := strconv.Atoi(splitPreRelease[len(splitPreRelease)-1]); err == nil {
+				return current.SetPrerelease(preRelease)
+			}
 		}
+
 		suffix = preRelease
 
 		// Check if the prerelease suffix is the same as the current prerelease
