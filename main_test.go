@@ -233,6 +233,26 @@ func Test_nextPreRelease(t *testing.T) {
 			want:    *semver.MustParse("1.2.3-alpha.2"),
 			wantErr: false,
 		},
+		{
+			name: "don't increment if explicit pre-release is supplied",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha.1"),
+				next:       semver.MustParse("1.2.3"),
+				preRelease: "alpha.10",
+			},
+			want:    *semver.MustParse("1.2.3-alpha.10"),
+			wantErr: false,
+		},
+		{
+			name: "prerelease suffix contains a number",
+			args: args{
+				current:    semver.MustParse("1.2.3-alpha123.1"),
+				next:       semver.MustParse("1.2.3"),
+				preRelease: "alpha123",
+			},
+			want:    *semver.MustParse("1.2.3-alpha123.2"),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
