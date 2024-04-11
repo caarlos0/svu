@@ -32,7 +32,7 @@ jobs:
           registry: docker.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: sigstore/cosign-installer@v3.4.0
+      - uses: sigstore/cosign-installer@v3.5.0
       - uses: anchore/sbom-action/download-syft@v0.15.10
       - uses: goreleaser/goreleaser-action@v5
         with:
