@@ -32,6 +32,9 @@ var (
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").
 				Default("false").
 				Bool()
+	preventMajorIncrementOnV0 = nextCmd.Flag("no-increment-v0", "prevent major version increments when its still v0").
+					Default("false").
+					Bool()
 )
 
 func main() {
@@ -42,15 +45,16 @@ func main() {
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	version, err := svu.Version(svu.Options{
-		Cmd:                 cmd,
-		Pattern:             *pattern,
-		Prefix:              *prefix,
-		StripPrefix:         *stripPrefix,
-		PreRelease:          *preRelease,
-		Build:               *build,
-		Directory:           *directory,
-		TagMode:             *tagMode,
-		ForcePatchIncrement: *forcePatchIncrement,
+		Cmd:                       cmd,
+		Pattern:                   *pattern,
+		Prefix:                    *prefix,
+		StripPrefix:               *stripPrefix,
+		PreRelease:                *preRelease,
+		Build:                     *build,
+		Directory:                 *directory,
+		TagMode:                   *tagMode,
+		ForcePatchIncrement:       *forcePatchIncrement,
+		PreventMajorIncrementOnV0: *preventMajorIncrementOnV0,
 	})
 	app.FatalIfError(err, "")
 	fmt.Println(version)
