@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/Masterminds/semver"
 	"github.com/gobwas/glob"
 )
 
@@ -43,7 +44,17 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	if len(tags) == 0 {
 		return "", nil
 	}
+
 	if pattern == "" {
+		for _, tag := range tags {
+			v, err := semver.NewVersion(tag)
+			if err != nil {
+				continue
+			}
+			if v.Prerelease() == "" {
+				return tag, nil
+			}
+		}
 		return tags[0], nil
 	}
 
