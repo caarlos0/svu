@@ -3,7 +3,7 @@ module github.com/caarlos0/svu
 go 1.20
 
 require (
-	github.com/Masterminds/semver v1.5.0
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/gobwas/glob v0.2.3
 	github.com/matryer/is v1.4.1

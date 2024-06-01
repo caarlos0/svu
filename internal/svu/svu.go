@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/caarlos0/svu/internal/git"
-
-	"github.com/Masterminds/semver"
 )
 
 const (
