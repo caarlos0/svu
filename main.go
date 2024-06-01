@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/caarlos0/svu/internal/svu"
+	"github.com/caarlos0/svu/v2/internal/svu"
 )
 
 var (

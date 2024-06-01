@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/caarlos0/svu/internal/git"
+	"github.com/caarlos0/svu/v2/internal/git"
 )
 
 const (

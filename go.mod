@@ -1,4 +1,4 @@
-module github.com/caarlos0/svu
+module github.com/caarlos0/svu/v2
 
 go 1.22
 

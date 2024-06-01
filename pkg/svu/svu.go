@@ -1,8 +1,8 @@
 package svu
 
 import (
-	"github.com/caarlos0/svu/internal/git"
-	"github.com/caarlos0/svu/internal/svu"
+	"github.com/caarlos0/svu/v2/internal/git"
+	"github.com/caarlos0/svu/v2/internal/svu"
 )
 
 type TagMode string
