@@ -18,7 +18,7 @@ var (
 	currentCmd    = app.Command("current", "prints current version").Alias("c")
 	preReleaseCmd = app.Command("prerelease", "new pre release version based on the next version calculated from git log").
 			Alias("pr")
-	preRelease = preReleaseCmd.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
+	preRelease  = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
 			String()
 	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	prefix      = app.Flag("prefix", "set a custom prefix").Default("v").String()
