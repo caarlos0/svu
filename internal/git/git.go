@@ -22,6 +22,12 @@ func IsRepo() bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
+// Root returns the root of the git repository
+func Root() (string, error) {
+	out, err := run("rev-parse", "--show-toplevel")
+	return strings.TrimSpace(out), err
+}
+
 func getAllTags(args ...string) ([]string, error) {
 	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
 	if err != nil {
