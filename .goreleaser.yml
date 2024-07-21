@@ -1,4 +1,7 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+
 version: 2
+
 variables:
   description: Semantic Version Utility
 
