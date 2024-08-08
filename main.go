@@ -54,12 +54,9 @@ func defaults(flag string) string {
 
 	cwd, wdErr := os.Getwd()
 	gitRoot, grErr := git.Root()
-
 	if wdErr == nil && grErr == nil {
-
 		cwd = filepath.Clean(cwd)
 		gitRoot = filepath.Clean(gitRoot)
-
 		if cwd != gitRoot {
 			prefix := strings.TrimPrefix(cwd, gitRoot)
 			prefix = strings.TrimPrefix(prefix, string(os.PathSeparator))
