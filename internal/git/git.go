@@ -22,10 +22,31 @@ func IsRepo() bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
-// Root returns the root of the git repository
+// Root returns the current working directory if it's inside a git repository's working tree
 func Root() (string, error) {
-	out, err := run("rev-parse", "--show-toplevel")
-	return strings.TrimSpace(out), err
+	// Check if the current directory is inside a Git working tree
+	isRepo := IsRepo()
+	if !isRepo {
+		return "", errors.New("not inside a Git working tree")
+	}
+
+	// Get the current working directory using `pwd`
+	cwd, err := getCurrentWorkingDirectory()
+	if err != nil {
+		return "", err
+	}
+
+	return cwd, nil
+}
+
+// getCurrentWorkingDirectory gets the current working directory using the `pwd` command
+func getCurrentWorkingDirectory() (string, error) {
+	cmd := exec.Command("pwd")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func getAllTags(args ...string) ([]string, error) {
