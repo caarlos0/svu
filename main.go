@@ -3,12 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 	"runtime/debug"
-	"strings"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/caarlos0/svu/v2/internal/git"
 	"github.com/caarlos0/svu/v2/internal/svu"
 )
 
@@ -21,10 +18,10 @@ var (
 	currentCmd    = app.Command("current", "prints current version").Alias("c")
 	preReleaseCmd = app.Command("prerelease", "new pre release version based on the next version calculated from git log").
 			Alias("pr")
-	preRelease = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
+	preRelease  = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
 			String()
-	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").Default(defaults("pattern")).String()
-	prefix      = app.Flag("prefix", "set a custom prefix").Default(defaults("prefix")).String()
+	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
+	prefix      = app.Flag("prefix", "set a custom prefix").Default("v").String()
 	stripPrefix = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
 	build       = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").
 			String()
@@ -39,29 +36,6 @@ var (
 					Default("false").
 					Bool()
 )
-
-func defaults(flag string) string {
-	var def, pat string
-	switch flag {
-	case "prefix":
-		def, pat = "v", "v"
-	case "pattern":
-		def, pat = "", "*"
-	default:
-		return ""
-	}
-
-	cwd, wdErr := os.Getwd()
-	gitRoot, grErr := git.Root()
-	if wdErr == nil && grErr == nil && cwd != gitRoot {
-		prefix := strings.TrimPrefix(cwd, gitRoot)
-		prefix = strings.TrimPrefix(prefix, string(os.PathSeparator))
-		prefix = strings.TrimSuffix(prefix, string(os.PathSeparator))
-		return path.Join(prefix, pat)
-	}
-
-	return def
-}
 
 func main() {
 	app.Author("Carlos Alexandro Becker <carlos@becker.software>")
