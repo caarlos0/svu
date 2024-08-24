@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -54,15 +53,11 @@ func defaults(flag string) string {
 
 	cwd, wdErr := os.Getwd()
 	gitRoot, grErr := git.Root()
-	if wdErr == nil && grErr == nil {
-		cwd = filepath.Clean(cwd)
-		gitRoot = filepath.Clean(gitRoot)
-		if cwd != gitRoot {
-			prefix := strings.TrimPrefix(cwd, gitRoot)
-			prefix = strings.TrimPrefix(prefix, string(os.PathSeparator))
-			prefix = strings.TrimSuffix(prefix, string(os.PathSeparator))
-			return path.Join(prefix, pat)
-		}
+	if wdErr == nil && grErr == nil && cwd != gitRoot {
+		prefix := strings.TrimPrefix(cwd, gitRoot)
+		prefix = strings.TrimPrefix(prefix, string(os.PathSeparator))
+		prefix = strings.TrimSuffix(prefix, string(os.PathSeparator))
+		return path.Join(prefix, pat)
 	}
 
 	return def
