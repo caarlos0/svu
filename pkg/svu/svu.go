@@ -102,6 +102,18 @@ func ForcePatchIncrement() option {
 	return WithForcePatchIncrement(true)
 }
 
+func WithWorkTree(directory string) option {
+	return func(o *svu.Options) {
+		o.WorkTree = directory
+	}
+}
+
+func WithGitDirectory(directory string) option {
+	return func(o *svu.Options) {
+		o.GitDirectory = directory
+	}
+}
+
 func version(opts ...option) (string, error) {
 	options := &svu.Options{
 		Cmd:     svu.NextCmd,
