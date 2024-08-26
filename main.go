@@ -29,7 +29,7 @@ var (
 	tagMode   = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").
 			Default("current-branch").
 			Enum("current-branch", "all-branches")
-	workTree = app.Flag("work-tree", "sets the git work-tree directory where the git repository exists").
+	gitWorkTree = app.Flag("git-work-tree", "sets the git work-tree directory where the git repository exists").
 			Default("").String()
 	gitDirectory        = app.Flag("git-directory", "sets the directory where the .git folder exists").Default("").String()
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").
@@ -56,7 +56,7 @@ func main() {
 		Build:                     *build,
 		Directory:                 *directory,
 		TagMode:                   *tagMode,
-		WorkTree:                  *workTree,
+		GitWorkTree:               *gitWorkTree,
 		GitDirectory:              *gitDirectory,
 		ForcePatchIncrement:       *forcePatchIncrement,
 		PreventMajorIncrementOnV0: *preventMajorIncrementOnV0,

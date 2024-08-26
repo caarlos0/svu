@@ -37,12 +37,12 @@ type Options struct {
 	TagMode                   string
 	ForcePatchIncrement       bool
 	PreventMajorIncrementOnV0 bool
-	WorkTree                  string
+	GitWorkTree               string
 	GitDirectory              string
 }
 
 func Version(opts Options) (string, error) {
-	r, err := git.NewRepository(opts.WorkTree, opts.GitDirectory)
+	r, err := git.NewRepository(opts.GitWorkTree, opts.GitDirectory)
 	if err != nil {
 		return "", fmt.Errorf("failed finding the repository: %w", err)
 	}

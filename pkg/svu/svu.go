@@ -102,9 +102,9 @@ func ForcePatchIncrement() option {
 	return WithForcePatchIncrement(true)
 }
 
-func WithWorkTree(directory string) option {
+func WithGitWorkTree(directory string) option {
 	return func(o *svu.Options) {
-		o.WorkTree = directory
+		o.GitWorkTree = directory
 	}
 }
 

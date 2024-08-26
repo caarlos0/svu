@@ -3,6 +3,7 @@ package git
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 func TestNewRepository(t *testing.T) {
 	cwd := currentWorkingDirectory(t)
-	cgd := cwd + string(os.PathSeparator) + ".git"
+	cgd := filepath.Join(cwd, ".git")
 
 	t.Run("defaults", func(t *testing.T) {
 		is := is.New(t)
@@ -165,7 +166,7 @@ func TestRepository_ChangelogWithDirectory(t *testing.T) {
 func TestRepository_run(t *testing.T) {
 	// current directory: . , ./.git
 	rootWT := currentWorkingDirectory(t)
-	rootGD := rootWT + string(os.PathSeparator) + ".git"
+	rootGD := filepath.Join(rootWT, ".git")
 
 	t.Run("current directory", func(t *testing.T) {
 		is := is.New(t)
@@ -295,6 +296,7 @@ func tempdir(tb testing.TB, cdToTempDir bool) string {
 	previous, err := os.Getwd()
 	is.NoErr(err)
 	dir := tb.TempDir()
+	tb.TempDir()
 	if cdToTempDir {
 		tb.Cleanup(func() {
 			is.NoErr(os.Chdir(previous))

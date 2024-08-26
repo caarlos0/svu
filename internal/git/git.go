@@ -25,30 +25,26 @@ type Repository struct {
 
 // NewRepository creates a Repository. worktree and gitdirectory will default to 'pwd' and 'pwd/.git'
 func NewRepository(worktree, gitdirectory string) (*Repository, error) {
-	var wt string
 	var err error
 	if worktree == "" {
-		wt, err = os.Getwd()
+		worktree, err = os.Getwd()
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		wt = filepath.Clean(worktree)
 	}
-	var gd string
+	worktree = filepath.Clean(worktree)
 	if gitdirectory == "" {
-		gd, err = os.Getwd()
+		gitdirectory, err = os.Getwd()
 		if err != nil {
 			return nil, err
 		}
-		gd = gd + string(os.PathSeparator) + ".git"
-	} else {
-		gd = filepath.Clean(gitdirectory)
+		gitdirectory = filepath.Join(gitdirectory, ".git")
 	}
+	gitdirectory = filepath.Clean(gitdirectory)
 
 	r := &Repository{
-		WorkTree:     wt,
-		GitDirectory: gd,
+		WorkTree:     worktree,
+		GitDirectory: gitdirectory,
 	}
 	return r, nil
 }
