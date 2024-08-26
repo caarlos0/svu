@@ -19,20 +19,20 @@ const (
 // copied from goreleaser
 
 type Repository struct {
-	WorkTree     string
+	GitWorkTree  string
 	GitDirectory string
 }
 
-// NewRepository creates a Repository. worktree and gitdirectory will default to 'pwd' and 'pwd/.git'
-func NewRepository(worktree, gitdirectory string) (*Repository, error) {
+// NewRepository creates a Repository. gitworktree and gitdirectory will default to 'pwd' and 'pwd/.git'
+func NewRepository(gitworktree, gitdirectory string) (*Repository, error) {
 	var err error
-	if worktree == "" {
-		worktree, err = os.Getwd()
+	if gitworktree == "" {
+		gitworktree, err = os.Getwd()
 		if err != nil {
 			return nil, err
 		}
 	}
-	worktree = filepath.Clean(worktree)
+	gitworktree = filepath.Clean(gitworktree)
 	if gitdirectory == "" {
 		gitdirectory, err = os.Getwd()
 		if err != nil {
@@ -43,7 +43,7 @@ func NewRepository(worktree, gitdirectory string) (*Repository, error) {
 	gitdirectory = filepath.Clean(gitdirectory)
 
 	r := &Repository{
-		WorkTree:     worktree,
+		GitWorkTree:  gitworktree,
 		GitDirectory: gitdirectory,
 	}
 	return r, nil
@@ -109,8 +109,8 @@ func (r *Repository) Changelog(tag string, dir string) (string, error) {
 
 func (r *Repository) run(args ...string) (string, error) {
 	extraArgs := []string{"-c", "log.showSignature=false"}
-	if r.WorkTree != "" {
-		extraArgs = append(extraArgs, fmt.Sprintf("--work-tree=%s", r.WorkTree))
+	if r.GitWorkTree != "" {
+		extraArgs = append(extraArgs, fmt.Sprintf("--work-tree=%s", r.GitWorkTree))
 	}
 	if r.GitDirectory != "" {
 		extraArgs = append(extraArgs, fmt.Sprintf("--git-dir=%s", r.GitDirectory))

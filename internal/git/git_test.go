@@ -19,16 +19,16 @@ func TestNewRepository(t *testing.T) {
 		is := is.New(t)
 		r, err := NewRepository("", "")
 		is.NoErr(err)
-		is.Equal(r.WorkTree, cwd)
+		is.Equal(r.GitWorkTree, cwd)
 		is.Equal(r.GitDirectory, cgd)
 	})
 
-	t.Run("only worktree set", func(t *testing.T) {
-		wt := "/idk/some/work/tree/location"
+	t.Run("only gitworktree set", func(t *testing.T) {
+		gwt := "/idk/some/git/work/tree/location"
 		is := is.New(t)
-		r, err := NewRepository(wt, "")
+		r, err := NewRepository(gwt, "")
 		is.NoErr(err)
-		is.Equal(r.WorkTree, wt)
+		is.Equal(r.GitWorkTree, gwt)
 		is.Equal(r.GitDirectory, cgd)
 	})
 
@@ -37,15 +37,15 @@ func TestNewRepository(t *testing.T) {
 		is := is.New(t)
 		r, err := NewRepository("", gd)
 		is.NoErr(err)
-		is.Equal(r.WorkTree, cwd)
+		is.Equal(r.GitWorkTree, cwd)
 		is.Equal(r.GitDirectory, gd)
 	})
 
-	t.Run("worktree and gitdir set", func(t *testing.T) {
+	t.Run("gitworktree and gitdir set", func(t *testing.T) {
 		is := is.New(t)
 		r, err := NewRepository(cwd, cgd)
 		is.NoErr(err)
-		is.Equal(r.WorkTree, cwd)
+		is.Equal(r.GitWorkTree, cwd)
 		is.Equal(r.GitDirectory, cgd)
 	})
 }
@@ -165,22 +165,22 @@ func TestRepository_ChangelogWithDirectory(t *testing.T) {
 
 func TestRepository_run(t *testing.T) {
 	// current directory: . , ./.git
-	rootWT := currentWorkingDirectory(t)
-	rootGD := filepath.Join(rootWT, ".git")
+	rootGWT := currentWorkingDirectory(t)
+	rootGD := filepath.Join(rootGWT, ".git")
 
 	t.Run("current directory", func(t *testing.T) {
 		is := is.New(t)
 		rootRepository := Repository{
-			WorkTree:     rootWT,
+			GitWorkTree:  rootGWT,
 			GitDirectory: rootGD,
 		}
 		_, err := rootRepository.run("init")
 		is.NoErr(err)
 		is.True(rootRepository.IsRepo())
-		actualRootWT, err := rootRepository.run("rev-parse", "--show-toplevel")
+		actualRootGWT, err := rootRepository.run("rev-parse", "--show-toplevel")
 		is.NoErr(err)
-		actualRootWT = strings.TrimSuffix(actualRootWT, "\n") // git adds a new line to the cli output
-		is.Equal(actualRootWT, rootWT)
+		actualRootGWT = strings.TrimSuffix(actualRootGWT, "\n") // git adds a new line to the cli output
+		is.Equal(actualRootGWT, rootGWT)
 		actualGitDir, err := rootRepository.run("rev-parse", "--absolute-git-dir")
 		is.NoErr(err)
 		actualGitDir = strings.TrimSuffix(actualGitDir, "\n") // git adds a new line to the cli output
@@ -188,22 +188,22 @@ func TestRepository_run(t *testing.T) {
 	})
 
 	// subdirectory: ./foo , ./foo/.git
-	subWT := dir(currentWorkingDirectory(t), "foo", t)
-	subGD := dir(subWT, ".git", t)
+	subGWT := dir(currentWorkingDirectory(t), "foo", t)
+	subGD := dir(subGWT, ".git", t)
 
 	t.Run("subdirectory", func(t *testing.T) {
 		is := is.New(t)
 		subfolderRepository := Repository{
-			WorkTree:     subWT,
+			GitWorkTree:  subGWT,
 			GitDirectory: subGD,
 		}
 		_, err := subfolderRepository.run("init")
 		is.NoErr(err)
 		is.True(subfolderRepository.IsRepo())
-		actualWT, err := subfolderRepository.run("rev-parse", "--show-toplevel")
+		actualGWT, err := subfolderRepository.run("rev-parse", "--show-toplevel")
 		is.NoErr(err)
-		actualWT = strings.TrimSuffix(actualWT, "\n") // git adds a new line to the cli output
-		is.Equal(actualWT, subWT)
+		actualGWT = strings.TrimSuffix(actualGWT, "\n") // git adds a new line to the cli output
+		is.Equal(actualGWT, subGWT)
 		actualGitDir, err := subfolderRepository.run("rev-parse", "--absolute-git-dir")
 		is.NoErr(err)
 		actualGitDir = strings.TrimSuffix(actualGitDir, "\n") // git adds a new line to the cli output
@@ -211,11 +211,11 @@ func TestRepository_run(t *testing.T) {
 	})
 
 	// external: /temp/sdfjklds , /temp/sdfjklds/.git
-	externalWT := tempdir(t, false)
-	externalGD := dir(externalWT, ".git", t)
-	tmpWTFileName := "somefile.txt"
-	tmpWTFilePath := tempfile(t, externalWT, tmpWTFileName)
-	expectedWTContent, _ := dataFromFile(tmpWTFilePath)
+	externalGWT := tempdir(t, false)
+	externalGD := dir(externalGWT, ".git", t)
+	tmpGWTFileName := "somefile.txt"
+	tmpGWTFilePath := tempfile(t, externalGWT, tmpGWTFileName)
+	expectedGWTContent, _ := dataFromFile(tmpGWTFilePath)
 	tmpGDFileName := "somefile.txt"
 	tmpGDFilePath := tempfile(t, externalGD, tmpGDFileName)
 	expectedGDContent, _ := dataFromFile(tmpGDFilePath)
@@ -223,19 +223,19 @@ func TestRepository_run(t *testing.T) {
 	t.Run("external directory", func(t *testing.T) {
 		is := is.New(t)
 		externalRepository := Repository{
-			WorkTree:     externalWT,
+			GitWorkTree:  externalGWT,
 			GitDirectory: externalGD,
 		}
 		_, err := externalRepository.run("init")
 		is.NoErr(err)
 		is.True(externalRepository.IsRepo())
-		actualWT, err := externalRepository.run("rev-parse", "--show-toplevel")
+		actualGWT, err := externalRepository.run("rev-parse", "--show-toplevel")
 		is.NoErr(err)
-		actualWT = strings.TrimSuffix(actualWT, "\n") // git adds a new line to the cli output
+		actualGWT = strings.TrimSuffix(actualGWT, "\n") // git adds a new line to the cli output
 		// compare file content instead of having to deal with symlink paths
-		actualWTContent, err := dataFromFile(actualWT + string(os.PathSeparator) + tmpWTFileName)
+		actualWTContent, err := dataFromFile(actualGWT + string(os.PathSeparator) + tmpGWTFileName)
 		is.NoErr(err)
-		is.Equal(expectedWTContent, actualWTContent)
+		is.Equal(expectedGWTContent, actualWTContent)
 
 		actualGD, err := externalRepository.run("rev-parse", "--absolute-git-dir")
 		is.NoErr(err)
