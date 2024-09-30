@@ -268,7 +268,7 @@ All commands are available with a function named accordingly:
 
 ### options
 
-All flags have a matching option function to configure the previous commands beyond their default bahavior:
+All flags have a matching option function to configure the previous commands beyond their default behavior:
 
 - `svu.Current(svu.WithPattern("p*"))`
 - `svu.Next(svu.WithPrefix("ver"))`
