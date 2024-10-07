@@ -279,6 +279,7 @@ All flags have a matching option function to configure the previous commands bey
 - `svu.Next(svu.WithTagMode(svu.AllBranches))` or `svu.Next(svu.ForAllBranches())`
 - `svu.Next(svu.WithTagMode(svu.CurrentBranch))` or `svu.Next(svu.ForCurrentBranch())`
 - `svu.Next(svu.ForcePatchIncrement())`
+- `svu.Current(svu.WithGitDirectory("/some/other/repo/.git"), svu.WithGitWorkTree("/some/other/repo"))`
 
 Or multiple options:
 
