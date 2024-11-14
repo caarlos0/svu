@@ -48,6 +48,10 @@ func TestIsFeature(t *testing.T) {
 		"fix: foo",
 		"chore: foo",
 		"docs: lalala",
+		"ci: foo",
+		"test: foo",
+		"Merge remote-tracking branch 'origin/main'",
+		"refactor: foo bar",
 	} {
 		t.Run(log, func(t *testing.T) {
 			is.New(t).True(!isFeature(log)) // should NOT be a minor change

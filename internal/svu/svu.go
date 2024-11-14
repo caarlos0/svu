@@ -202,20 +202,33 @@ func isPatch(log string) bool {
 	return patch.MatchString(log)
 }
 
-func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, log string) semver.Version {
-	if isBreaking(log) {
-		if current.Major() == 0 && preventMajorIncrementOnV0 {
+func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, log []string) semver.Version {
+	for _, line := range log {
+		breaking := isBreaking(line)
+		if !breaking {
+			hash, _, ok := strings.Cut(line, " ")
+			if ok {
+				msg, err := git.Format(hash)
+				if err == nil {
+					breaking = isBreaking(msg)
+				}
+			}
+
+		}
+		if breaking {
+			if current.Major() == 0 && preventMajorIncrementOnV0 {
+				return current.IncMinor()
+			}
+			return current.IncMajor()
+		}
+
+		if isFeature(line) {
 			return current.IncMinor()
 		}
-		return current.IncMajor()
-	}
 
-	if isFeature(log) {
-		return current.IncMinor()
-	}
-
-	if forcePatchIncrement || isPatch(log) {
-		return current.IncPatch()
+		if forcePatchIncrement || isPatch(line) {
+			return current.IncPatch()
+		}
 	}
 
 	return *current

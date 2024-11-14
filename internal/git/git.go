@@ -59,12 +59,16 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dir string) (string, error) {
+func Changelog(tag string, dir string) ([]string, error) {
 	if tag == "" {
 		return gitLog(dir, "HEAD")
 	} else {
 		return gitLog(dir, fmt.Sprintf("tags/%s..HEAD", tag))
 	}
+}
+
+func Format(ref string) (string, error) {
+	return run("log", "--format=%B", "-n1", ref)
 }
 
 func run(args ...string) (string, error) {
@@ -81,11 +85,15 @@ func run(args ...string) (string, error) {
 	return string(bts), nil
 }
 
-func gitLog(dir string, refs ...string) (string, error) {
-	args := []string{"log", "--no-decorate", "--no-color"}
+func gitLog(dir string, refs ...string) ([]string, error) {
+	args := []string{"log", "--no-decorate", "--no-color", "--oneline"}
 	args = append(args, refs...)
 	if dir != "" {
 		args = append(args, "--", dir)
 	}
-	return run(args...)
+	s, err := run(args...)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(s, "\n"), nil
 }
