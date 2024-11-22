@@ -87,17 +87,17 @@ func TestFindNext(t *testing.T) {
 	version2 := semver.MustParse("v2.4.12")
 	version3 := semver.MustParse("v3.4.5-beta34+ads")
 	for expected, next := range map[string]semver.Version{
-		"v0.4.5": findNext(version0a, false, false, "chore: should do nothing"),
-		"v0.4.6": findNext(version0a, false, false, "fix: inc patch"),
-		"v0.5.0": findNext(version0a, false, false, "feat: inc minor"),
-		"v1.0.0": findNext(version0b, false, false, "feat!: inc minor"),
-		"v0.6.0": findNext(version0b, true, false, "feat!: inc minor"),
-		"v1.2.3": findNext(version1, false, false, "chore: should do nothing"),
-		"v1.2.4": findNext(version1, false, true, "chore: is forcing patch, so should inc patch"),
-		"v1.3.0": findNext(version1, false, false, "feat: inc major"),
-		"v2.0.0": findNext(version1, false, true, "chore!: hashbang incs major"),
-		"v3.0.0": findNext(version2, false, false, "feat: something\nBREAKING CHANGE: increases major"),
-		"v3.5.0": findNext(version3, false, false, "feat: inc major"),
+		"v0.4.5": findNext(version0a, false, false, []string{"chore: should do nothing"}),
+		"v0.4.6": findNext(version0a, false, false, []string{"fix: inc patch"}),
+		"v0.5.0": findNext(version0a, false, false, []string{"feat: inc minor"}),
+		"v1.0.0": findNext(version0b, false, false, []string{"feat!: inc minor"}),
+		"v0.6.0": findNext(version0b, true, false, []string{"feat!: inc minor"}),
+		"v1.2.3": findNext(version1, false, false, []string{"chore: should do nothing"}),
+		"v1.2.4": findNext(version1, false, true, []string{"chore: is forcing patch, so should inc patch"}),
+		"v1.3.0": findNext(version1, false, false, []string{"feat: inc major"}),
+		"v2.0.0": findNext(version1, false, true, []string{"chore!: hashbang incs major"}),
+		"v3.0.0": findNext(version2, false, false, []string{"feat: something\nBREAKING CHANGE: increases major"}),
+		"v3.5.0": findNext(version3, false, false, []string{"feat: inc major"}),
 	} {
 		t.Run(expected, func(t *testing.T) {
 			is.New(t).True(semver.MustParse(expected).Equal(&next)) // expected and next version should match
