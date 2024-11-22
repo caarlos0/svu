@@ -3,7 +3,7 @@ module github.com/caarlos0/svu/v2
 go 1.22
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
 	github.com/matryer/is v1.4.1
