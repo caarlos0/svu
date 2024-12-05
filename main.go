@@ -18,7 +18,7 @@ var (
 	currentCmd    = app.Command("current", "prints current version").Alias("c")
 	preReleaseCmd = app.Command("prerelease", "new pre release version based on the next version calculated from git log").
 			Alias("pr")
-	preRelease  = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
+	preRelease = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
 			String()
 	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
 	prefix      = app.Flag("prefix", "set a custom prefix").Default("v").String()
@@ -29,6 +29,9 @@ var (
 	tagMode   = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").
 			Default("current-branch").
 			Enum("current-branch", "all-branches")
+	gitWorkTree = app.Flag("git-work-tree", "sets the git work-tree directory where the git repository exists").
+			Default("").String()
+	gitDirectory        = app.Flag("git-directory", "sets the directory where the .git folder exists").Default("").String()
 	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").
 				Default("false").
 				Bool()
@@ -53,6 +56,8 @@ func main() {
 		Build:                     *build,
 		Directory:                 *directory,
 		TagMode:                   *tagMode,
+		GitWorkTree:               *gitWorkTree,
+		GitDirectory:              *gitDirectory,
 		ForcePatchIncrement:       *forcePatchIncrement,
 		PreventMajorIncrementOnV0: *preventMajorIncrementOnV0,
 	})
