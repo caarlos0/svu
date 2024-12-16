@@ -33,7 +33,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: sigstore/cosign-installer@v3.7.0
-      - uses: anchore/sbom-action/download-syft@v0.17.8
+      - uses: anchore/sbom-action/download-syft@v0.17.9
       - uses: cachix/install-nix-action@v30
         with:
           github_access_token: ${{ secrets.GH_PAT }}
