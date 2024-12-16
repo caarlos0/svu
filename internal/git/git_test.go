@@ -115,6 +115,67 @@ func TestChangelogWithDirectory(t *testing.T) {
 	is.True(!strings.Contains(log, "feat: foobar"))
 }
 
+func TestChangelogWithMultipleDirectories(t *testing.T) {
+	const (
+		featCommitMsg  = "feat: new feature"
+		fixCommitMsg   = "fix: some fix"
+		choreCommitMsg = "chore: foobar"
+	)
+
+	tempDir := tempdir(t)
+
+	is := is.New(t)
+
+	addFileToDir := func(dir string) {
+		err := os.Mkdir(path.Join(tempDir, dir), 0755)
+		is.NoErr(err)
+		file := tempfile(t, dir)
+		gitAdd(t, file)
+	}
+
+	// Setup git with chore commit at root, a feat commit in dir1, and a fix commit in dir2
+	gitInit(t)
+	gitCommit(t, "initial commit")
+	gitTag(t, "v1.2.3")
+	gitCommit(t, choreCommitMsg)
+
+	dir1 := "dir1"
+	addFileToDir(dir1)
+	gitCommit(t, featCommitMsg)
+
+	dir2 := "dir2"
+	addFileToDir(dir2)
+	gitCommit(t, fixCommitMsg)
+
+	// Test only dir1
+	log1, err := Changelog("v1.2.3", dir1)
+	is.NoErr(err)
+	is.True(strings.Contains(log1, featCommitMsg))
+	is.True(!strings.Contains(log1, fixCommitMsg))
+	is.True(!strings.Contains(log1, choreCommitMsg))
+
+	// Test only dir2
+	log2, err := Changelog("v1.2.3", dir2)
+	is.NoErr(err)
+	is.True(!strings.Contains(log2, featCommitMsg))
+	is.True(strings.Contains(log2, fixCommitMsg))
+	is.True(!strings.Contains(log2, choreCommitMsg))
+
+	// Test dir1 and dir2
+	log1and2, err := Changelog("v1.2.3", dir1, dir2)
+	is.NoErr(err)
+	is.True(strings.Contains(log1and2, featCommitMsg))
+	is.True(strings.Contains(log1and2, fixCommitMsg))
+	is.True(!strings.Contains(log1, choreCommitMsg))
+
+	// Regression test empty string
+	logAll, err := Changelog("v1.2.3", "")
+	is.NoErr(err)
+	is.True(strings.Contains(logAll, choreCommitMsg))
+	is.True(strings.Contains(logAll, featCommitMsg))
+	is.True(strings.Contains(logAll, fixCommitMsg))
+}
+
 func switchToBranch(tb testing.TB, branch string) {
 	is := is.New(tb)
 	_, err := fakeGitRun("switch", branch)
