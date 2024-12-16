@@ -25,7 +25,7 @@ var (
 	stripPrefix = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
 	build       = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").
 			String()
-	directory = app.Flag("directory", "specifies directory to filter commit messages by").Default("").String()
+	directories = app.Flag("directory", "specifies directory to filter commit messages by").Default("").Strings()
 	tagMode   = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").
 			Default("current-branch").
 			Enum("current-branch", "all-branches")
@@ -51,7 +51,7 @@ func main() {
 		StripPrefix:               *stripPrefix,
 		PreRelease:                *preRelease,
 		Build:                     *build,
-		Directory:                 *directory,
+		Directories:               *directories,
 		TagMode:                   *tagMode,
 		ForcePatchIncrement:       *forcePatchIncrement,
 		PreventMajorIncrementOnV0: *preventMajorIncrementOnV0,

@@ -59,11 +59,11 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dir string) (string, error) {
+func Changelog(tag string, dirs ...string) (string, error) {
 	if tag == "" {
-		return gitLog(dir, "HEAD")
+		return gitLog(dirs, "HEAD")
 	} else {
-		return gitLog(dir, fmt.Sprintf("tags/%s..HEAD", tag))
+		return gitLog(dirs, fmt.Sprintf("tags/%s..HEAD", tag))
 	}
 }
 
@@ -81,11 +81,14 @@ func run(args ...string) (string, error) {
 	return string(bts), nil
 }
 
-func gitLog(dir string, refs ...string) (string, error) {
+func gitLog(dirs []string, refs ...string) (string, error) {
 	args := []string{"log", "--no-decorate", "--no-color"}
 	args = append(args, refs...)
-	if dir != "" {
-		args = append(args, "--", dir)
+	// dirs was changed from string to []string, so we handle the case where a single empty string is passed for
+	// backwards compatibility
+	if len(dirs) > 1 || (len(dirs) == 1 && dirs[0] != "") {
+		args = append(args, "--")
+		args = append(args, dirs...)
 	}
 	return run(args...)
 }
