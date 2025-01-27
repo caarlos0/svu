@@ -74,7 +74,7 @@ func WithBuild(build string) option {
 
 func WithDirectory(directory string) option {
 	return func(o *svu.Options) {
-		o.Directory = directory
+		o.Directories = append(o.Directories, directory)
 	}
 }
 
