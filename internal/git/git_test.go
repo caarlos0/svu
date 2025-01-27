@@ -3,6 +3,7 @@ package git
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -10,25 +11,66 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestIsRepo(t *testing.T) {
-	t.Run("is not a repo", func(t *testing.T) {
-		tempdir(t)
+func TestNewRepository(t *testing.T) {
+	cwd := currentWorkingDirectory(t)
+	cgd := filepath.Join(cwd, ".git")
+
+	t.Run("defaults", func(t *testing.T) {
 		is := is.New(t)
-		is.Equal(false, IsRepo()) // should not be arepo
+		r, err := NewRepository("", "")
+		is.NoErr(err)
+		is.Equal(r.GitWorkTree, cwd)
+		is.Equal(r.GitDirectory, cgd)
 	})
 
-	t.Run("is a repo", func(t *testing.T) {
-		tempdir(t)
-		gitInit(t)
+	t.Run("only gitworktree set", func(t *testing.T) {
+		gwt := "/idk/some/git/work/tree/location"
 		is := is.New(t)
-		is.True(IsRepo()) // should be arepo
+		r, err := NewRepository(gwt, "")
+		is.NoErr(err)
+		is.Equal(r.GitWorkTree, gwt)
+		is.Equal(r.GitDirectory, cgd)
+	})
+
+	t.Run("only gitdir set", func(t *testing.T) {
+		gd := "/idk/some/git/location"
+		is := is.New(t)
+		r, err := NewRepository("", gd)
+		is.NoErr(err)
+		is.Equal(r.GitWorkTree, cwd)
+		is.Equal(r.GitDirectory, gd)
+	})
+
+	t.Run("gitworktree and gitdir set", func(t *testing.T) {
+		is := is.New(t)
+		r, err := NewRepository(cwd, cgd)
+		is.NoErr(err)
+		is.Equal(r.GitWorkTree, cwd)
+		is.Equal(r.GitDirectory, cgd)
 	})
 }
 
-func TestDescribeTag(t *testing.T) {
+func TestRepository_IsRepo(t *testing.T) {
+	t.Run("is not a repo", func(t *testing.T) {
+		tempdir(t, true)
+		r := Repository{}
+		is := is.New(t)
+		is.Equal(false, r.IsRepo()) // should not be arepo
+	})
+
+	t.Run("is a repo", func(t *testing.T) {
+		tempdir(t, true)
+		gitInit(t)
+		r := Repository{}
+		is := is.New(t)
+		is.True(r.IsRepo()) // should be arepo
+	})
+}
+
+func TestRepository_DescribeTag(t *testing.T) {
 	setup := func(tb testing.TB) {
 		tb.Helper()
-		tempdir(tb)
+		tempdir(tb, true)
 		gitInit(tb)
 		gitCommit(tb, "chore: foobar")
 		gitTag(tb, "pattern-1.2.3")
@@ -49,7 +91,8 @@ func TestDescribeTag(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("current-branch", "")
+		r := Repository{}
+		tag, err := r.DescribeTag("current-branch", "")
 		is.NoErr(err)
 		is.Equal("v1.2.4", tag)
 	})
@@ -57,7 +100,8 @@ func TestDescribeTag(t *testing.T) {
 	t.Run("all-branches", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("all-branches", "")
+		r := Repository{}
+		tag, err := r.DescribeTag("all-branches", "")
 		is.NoErr(err)
 		is.Equal("v1.2.5", tag)
 	})
@@ -65,14 +109,15 @@ func TestDescribeTag(t *testing.T) {
 	t.Run("pattern", func(t *testing.T) {
 		setup(t)
 		is := is.New(t)
-		tag, err := DescribeTag("current-branch", "pattern-*")
+		r := Repository{}
+		tag, err := r.DescribeTag("current-branch", "pattern-*")
 		is.NoErr(err)
 		is.Equal("pattern-1.2.3", tag)
 	})
 }
 
-func TestChangelog(t *testing.T) {
-	tempdir(t)
+func TestRepository_Changelog(t *testing.T) {
+	tempdir(t, true)
 	gitInit(t)
 	gitCommit(t, "chore: foobar")
 	gitCommit(t, "lalalala")
@@ -85,7 +130,8 @@ func TestChangelog(t *testing.T) {
 		gitCommit(t, msg)
 	}
 	is := is.New(t)
-	log, err := Changelog("v1.2.3", "")
+	r := Repository{}
+	log, err := r.Changelog("v1.2.3", "")
 	is.NoErr(err)
 	for _, msg := range []string{
 		"chore: foobar",
@@ -96,10 +142,11 @@ func TestChangelog(t *testing.T) {
 	}
 }
 
-func TestChangelogWithDirectory(t *testing.T) {
-	tempDir := tempdir(t)
-	localDir := dir(tempDir, t)
-	file := tempfile(t, localDir)
+func TestRepository_ChangelogWithDirectory(t *testing.T) {
+	tempDir := tempdir(t, true)
+	localDir := dir(tempDir, "a-folder", t)
+	defer func() { os.RemoveAll(localDir) }()
+	file := tempfile(t, localDir, "a-file.txt")
 	gitInit(t)
 	gitCommit(t, "chore: foobar")
 	gitCommit(t, "lalalala")
@@ -108,11 +155,103 @@ func TestChangelogWithDirectory(t *testing.T) {
 	gitAdd(t, file)
 	gitCommit(t, "chore: filtered dir")
 	is := is.New(t)
-	log, err := Changelog("v1.2.3", localDir)
+	r := Repository{}
+	log, err := r.Changelog("v1.2.3", localDir)
 	is.NoErr(err)
 
 	is.True(strings.Contains(log, "chore: filtered dir"))
 	is.True(!strings.Contains(log, "feat: foobar"))
+}
+
+func TestRepository_run(t *testing.T) {
+	// current directory: . , ./.git
+	rootGWT := currentWorkingDirectory(t)
+	rootGD := filepath.Join(rootGWT, ".git")
+
+	t.Run("current directory", func(t *testing.T) {
+		is := is.New(t)
+		rootRepository := Repository{
+			GitWorkTree:  rootGWT,
+			GitDirectory: rootGD,
+		}
+		_, err := rootRepository.run("init")
+		is.NoErr(err)
+		is.True(rootRepository.IsRepo())
+		actualRootGWT, err := rootRepository.run("rev-parse", "--show-toplevel")
+		is.NoErr(err)
+		actualRootGWT = strings.TrimSuffix(actualRootGWT, "\n") // git adds a new line to the cli output
+		is.Equal(actualRootGWT, rootGWT)
+		actualGitDir, err := rootRepository.run("rev-parse", "--absolute-git-dir")
+		is.NoErr(err)
+		actualGitDir = strings.TrimSuffix(actualGitDir, "\n") // git adds a new line to the cli output
+		is.Equal(actualGitDir, rootGD)
+	})
+
+	// subdirectory: ./foo , ./foo/.git
+	subGWT := dir(currentWorkingDirectory(t), "foo", t)
+	subGD := dir(subGWT, ".git", t)
+
+	t.Run("subdirectory", func(t *testing.T) {
+		is := is.New(t)
+		subfolderRepository := Repository{
+			GitWorkTree:  subGWT,
+			GitDirectory: subGD,
+		}
+		_, err := subfolderRepository.run("init")
+		is.NoErr(err)
+		is.True(subfolderRepository.IsRepo())
+		actualGWT, err := subfolderRepository.run("rev-parse", "--show-toplevel")
+		is.NoErr(err)
+		actualGWT = strings.TrimSuffix(actualGWT, "\n") // git adds a new line to the cli output
+		is.Equal(actualGWT, subGWT)
+		actualGitDir, err := subfolderRepository.run("rev-parse", "--absolute-git-dir")
+		is.NoErr(err)
+		actualGitDir = strings.TrimSuffix(actualGitDir, "\n") // git adds a new line to the cli output
+		is.Equal(actualGitDir, subGD)
+	})
+
+	// external: /temp/sdfjklds , /temp/sdfjklds/.git
+	externalGWT := tempdir(t, false)
+	externalGD := dir(externalGWT, ".git", t)
+	tmpGWTFileName := "somefile.txt"
+	tmpGWTFilePath := tempfile(t, externalGWT, tmpGWTFileName)
+	expectedGWTContent, _ := dataFromFile(tmpGWTFilePath)
+	tmpGDFileName := "somefile.txt"
+	tmpGDFilePath := tempfile(t, externalGD, tmpGDFileName)
+	expectedGDContent, _ := dataFromFile(tmpGDFilePath)
+
+	t.Run("external directory", func(t *testing.T) {
+		is := is.New(t)
+		externalRepository := Repository{
+			GitWorkTree:  externalGWT,
+			GitDirectory: externalGD,
+		}
+		_, err := externalRepository.run("init")
+		is.NoErr(err)
+		is.True(externalRepository.IsRepo())
+		actualGWT, err := externalRepository.run("rev-parse", "--show-toplevel")
+		is.NoErr(err)
+		actualGWT = strings.TrimSuffix(actualGWT, "\n") // git adds a new line to the cli output
+		// compare file content instead of having to deal with symlink paths
+		actualWTContent, err := dataFromFile(actualGWT + string(os.PathSeparator) + tmpGWTFileName)
+		is.NoErr(err)
+		is.Equal(expectedGWTContent, actualWTContent)
+
+		actualGD, err := externalRepository.run("rev-parse", "--absolute-git-dir")
+		is.NoErr(err)
+		actualGD = strings.TrimSuffix(actualGD, "\n") // git adds a new line to the cli output
+		actualGDContent, err := dataFromFile(actualGD + string(os.PathSeparator) + tmpGDFileName)
+		is.NoErr(err)
+		is.Equal(expectedGDContent, actualGDContent)
+	})
+}
+
+func dataFromFile(filePath string) ([]byte, error) {
+	file, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
 }
 
 func switchToBranch(tb testing.TB, branch string) {
@@ -151,31 +290,36 @@ func gitInit(tb testing.TB) {
 	is.NoErr(err)
 }
 
-func tempdir(tb testing.TB) string {
+// tempdir create a temporary directory and optionally cd into it
+func tempdir(tb testing.TB, cdToTempDir bool) string {
 	is := is.New(tb)
 	previous, err := os.Getwd()
 	is.NoErr(err)
-	tb.Cleanup(func() {
-		is.NoErr(os.Chdir(previous))
-	})
 	dir := tb.TempDir()
-	is.NoErr(os.Chdir(dir))
-	tb.Logf("cd into %s", dir)
+	tb.TempDir()
+	if cdToTempDir {
+		tb.Cleanup(func() {
+			is.NoErr(os.Chdir(previous))
+		})
+		is.NoErr(os.Chdir(dir))
+		tb.Logf("cd into %s", dir)
+	}
 	return dir
 }
 
-func dir(tempDir string, tb testing.TB) string {
+func dir(tempDir, subfolder string, tb testing.TB) string {
 	is := is.New(tb)
-	createdDir := path.Join(tempDir, "a-folder")
+	createdDir := path.Join(tempDir, subfolder)
 	err := os.Mkdir(createdDir, 0755)
+	tb.Cleanup(func() { os.RemoveAll(createdDir) })
 	is.NoErr(err)
 	return createdDir
 }
 
-func tempfile(tb testing.TB, dir string) string {
+func tempfile(tb testing.TB, dir, filename string) string {
 	is := is.New(tb)
 	d1 := []byte("hello\ngo\n")
-	file := path.Join(dir, "a-file.txt")
+	file := path.Join(dir, filename)
 	err := os.WriteFile(file, d1, 0644)
 	is.NoErr(err)
 	return file
@@ -190,5 +334,13 @@ func fakeGitRun(args ...string) (string, error) {
 		"-c", "log.showSignature=false",
 	}
 	allArgs = append(allArgs, args...)
-	return run(allArgs...)
+	r := Repository{}
+	return r.run(allArgs...)
+}
+
+func currentWorkingDirectory(tb *testing.T) string {
+	is := is.New(tb)
+	getwd, err := os.Getwd()
+	is.NoErr(err)
+	return getwd
 }

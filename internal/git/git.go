@@ -3,7 +3,9 @@ package git
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/gobwas/glob"
@@ -16,26 +18,64 @@ const (
 
 // copied from goreleaser
 
-// IsRepo returns true if current folder is a git repository
-func IsRepo() bool {
-	out, err := run("rev-parse", "--is-inside-work-tree")
-	return err == nil && strings.TrimSpace(out) == "true"
+type Repository struct {
+	GitWorkTree  string
+	GitDirectory string
 }
 
-func getAllTags(args ...string) ([]string, error) {
-	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
+// NewRepository creates a Repository. gitworktree and gitdirectory will default to 'pwd' and 'pwd/.git'
+func NewRepository(gitworktree, gitdirectory string) (*Repository, error) {
+	var err error
+	if gitworktree == "" {
+		gitworktree, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+	gitworktree = filepath.Clean(gitworktree)
+	if gitdirectory == "" {
+		gitdirectory, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		gitdirectory = filepath.Join(gitdirectory, ".git")
+	}
+	gitdirectory = filepath.Clean(gitdirectory)
+
+	r := &Repository{
+		GitWorkTree:  gitworktree,
+		GitDirectory: gitdirectory,
+	}
+	return r, nil
+}
+
+// IsRepo returns true if the current work-tree and git-dir are considered a git repository by the git binary.
+// unless specified by --work-tree and --git-dir, the current working directory will be considered
+func (r *Repository) IsRepo() bool {
+	_, err := r.run("status")
+	return err == nil
+}
+
+// Root returns the root of the git Repository
+func (r *Repository) Root() (string, error) {
+	out, err := r.run("rev-parse", "--show-toplevel")
+	return strings.TrimSpace(out), err
+}
+
+func (r *Repository) getAllTags(args ...string) ([]string, error) {
+	tags, err := r.run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
 	if err != nil {
 		return nil, err
 	}
 	return strings.Split(tags, "\n"), nil
 }
 
-func DescribeTag(tagMode string, pattern string) (string, error) {
+func (r *Repository) DescribeTag(tagMode string, pattern string) (string, error) {
 	args := []string{}
 	if tagMode == CurrentBranchTagMode {
 		args = []string{"--merged"}
 	}
-	tags, err := getAllTags(args...)
+	tags, err := r.getAllTags(args...)
 	if err != nil {
 		return "", err
 	}
@@ -59,17 +99,21 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dir string) (string, error) {
+func (r *Repository) Changelog(tag string, dir string) (string, error) {
 	if tag == "" {
-		return gitLog(dir, "HEAD")
+		return r.gitLog(dir, "HEAD")
 	} else {
-		return gitLog(dir, fmt.Sprintf("tags/%s..HEAD", tag))
+		return r.gitLog(dir, fmt.Sprintf("tags/%s..HEAD", tag))
 	}
 }
 
-func run(args ...string) (string, error) {
-	extraArgs := []string{
-		"-c", "log.showSignature=false",
+func (r *Repository) run(args ...string) (string, error) {
+	extraArgs := []string{"-c", "log.showSignature=false"}
+	if r.GitWorkTree != "" {
+		extraArgs = append(extraArgs, fmt.Sprintf("--work-tree=%s", r.GitWorkTree))
+	}
+	if r.GitDirectory != "" {
+		extraArgs = append(extraArgs, fmt.Sprintf("--git-dir=%s", r.GitDirectory))
 	}
 	args = append(extraArgs, args...)
 	/* #nosec */
@@ -81,11 +125,11 @@ func run(args ...string) (string, error) {
 	return string(bts), nil
 }
 
-func gitLog(dir string, refs ...string) (string, error) {
+func (r *Repository) gitLog(dir string, refs ...string) (string, error) {
 	args := []string{"log", "--no-decorate", "--no-color"}
 	args = append(args, refs...)
 	if dir != "" {
 		args = append(args, "--", dir)
 	}
-	return run(args...)
+	return r.run(args...)
 }
