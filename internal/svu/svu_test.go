@@ -6,7 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/caarlos0/svu/v2/internal/git"
-	"github.com/matryer/is"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsBreaking(t *testing.T) {
@@ -17,7 +17,7 @@ func TestIsBreaking(t *testing.T) {
 		{Title: "docs: lalala", Body: "BREAKING-CHANGE: lalal"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(isBreaking(commit)) // should be a major change
+			require.True(t, isBreaking(commit)) // should be a major change
 		})
 	}
 
@@ -30,7 +30,7 @@ func TestIsBreaking(t *testing.T) {
 		{Title: "docs: BREAKING_CHANGE: foo"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(!isBreaking(commit)) // should NOT be a major change
+			require.True(t, !isBreaking(commit)) // should NOT be a major change
 		})
 	}
 }
@@ -41,7 +41,7 @@ func TestIsFeature(t *testing.T) {
 		{Title: "feat(lalal): foobar"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(isFeature(commit)) // should be a minor change
+			require.True(t, isFeature(commit)) // should be a minor change
 		})
 	}
 
@@ -55,7 +55,7 @@ func TestIsFeature(t *testing.T) {
 		{Title: "refactor: foo bar"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(!isFeature(commit)) // should NOT be a minor change
+			require.True(t, !isFeature(commit)) // should NOT be a minor change
 		})
 	}
 }
@@ -66,7 +66,7 @@ func TestIsPatch(t *testing.T) {
 		{Title: "fix(lalal): lalala"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(isPatch(commit)) // should be a patch change
+			require.True(t, isPatch(commit)) // should be a patch change
 		})
 	}
 
@@ -76,7 +76,7 @@ func TestIsPatch(t *testing.T) {
 		{Title: "invalid commit"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			is.New(t).True(!isPatch(commit)) // should NOT be a patch change
+			require.True(t, !isPatch(commit)) // should NOT be a patch change
 		})
 	}
 }
@@ -101,7 +101,7 @@ func TestFindNext(t *testing.T) {
 		"v3.5.0": findNext(version3, false, false, []git.Commit{{Title: "feat: inc major"}}),
 	} {
 		t.Run(expected, func(t *testing.T) {
-			is.New(t).True(semver.MustParse(expected).Equal(&next)) // expected and next version should match
+			require.True(t, semver.MustParse(expected).Equal(&next)) // expected and next version should match
 		})
 	}
 }
@@ -111,137 +111,117 @@ func TestCmd(t *testing.T) {
 	t.Run(CurrentCmd, func(t *testing.T) {
 		cmd := CurrentCmd
 		t.Run("version has meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.3-pre+123", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.3-pre+123", v.String())
 		})
 		t.Run("version is clean", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("v1.2.3"), "v1.2.3", "doesnt matter", "nope", "", false, true)
-			is.NoErr(err)
-			is.Equal("1.2.3", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.3", v.String())
 		})
 	})
 
 	t.Run(MinorCmd, func(t *testing.T) {
 		cmd := MinorCmd
 		t.Run("no meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.3.0", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.3.0", v.String())
 		})
 		t.Run("build", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "", "124", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.3.0+124", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.3.0+124", v.String())
 		})
 		t.Run("prerel", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "alpha.1", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.3.0-alpha.1", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.3.0-alpha.1", v.String())
 		})
 		t.Run("all meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "alpha.2", "125", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.3.0-alpha.2+125", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.3.0-alpha.2+125", v.String())
 		})
 	})
 
 	t.Run(PatchCmd, func(t *testing.T) {
 		cmd := PatchCmd
 		t.Run("no meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3"), "v1.2.3", "", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.4", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4", v.String())
 		})
 		t.Run("previous had meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", "", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.3", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.3", v.String())
 		})
 		t.Run("previous had meta, force", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", "", "", "", false, true)
-			is.NoErr(err)
-			is.Equal("1.2.4", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4", v.String())
 		})
 		t.Run("previous had meta, force, add meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", "alpha.2", "10", "", false, true)
-			is.NoErr(err)
-			is.Equal("1.2.4-alpha.2+10", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4-alpha.2+10", v.String())
 		})
 		t.Run("previous had meta, change it", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", "alpha.2", "10", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.3-alpha.2+10", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.3-alpha.2+10", v.String())
 		})
 		t.Run("build", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3"), "v1.2.3", "", "124", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.4+124", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4+124", v.String())
 		})
 		t.Run("prerel", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3"), "v1.2.3", "alpha.1", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.4-alpha.1", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4-alpha.1", v.String())
 		})
 		t.Run("all meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, semver.MustParse("1.2.3"), "v1.2.3", "alpha.2", "125", "", false, false)
-			is.NoErr(err)
-			is.Equal("1.2.4-alpha.2+125", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "1.2.4-alpha.2+125", v.String())
 		})
 	})
 
 	t.Run(MajorCmd, func(t *testing.T) {
 		cmd := MajorCmd
 		t.Run("no meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("2.0.0", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "2.0.0", v.String())
 		})
 		t.Run("build", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "", "124", "", false, false)
-			is.NoErr(err)
-			is.Equal("2.0.0+124", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "2.0.0+124", v.String())
 		})
 		t.Run("prerel", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "alpha.1", "", "", false, false)
-			is.NoErr(err)
-			is.Equal("2.0.0-alpha.1", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "2.0.0-alpha.1", v.String())
 		})
 		t.Run("all meta", func(t *testing.T) {
-			is := is.New(t)
 			v, err := nextVersion(cmd, ver(), "v1.2.3", "alpha.2", "125", "", false, false)
-			is.NoErr(err)
-			is.Equal("2.0.0-alpha.2+125", v.String())
+			require.NoError(t, err)
+			require.Equal(t, "2.0.0-alpha.2+125", v.String())
 		})
 	})
 
 	t.Run("errors", func(t *testing.T) {
 		t.Run("invalid build", func(t *testing.T) {
-			is := is.New(t)
 			_, err := nextVersion(MinorCmd, semver.MustParse("1.2.3"), "v1.2.3", "", "+125", "", false, false)
-			is.True(err != nil)
+			require.True(t, err != nil)
 		})
 		t.Run("invalid prerelease", func(t *testing.T) {
-			is := is.New(t)
 			_, err := nextVersion(MinorCmd, semver.MustParse("1.2.3"), "v1.2.3", "+aaa", "", "", false, false)
-			is.True(err != nil)
+			require.True(t, err != nil)
 		})
 	})
 }
