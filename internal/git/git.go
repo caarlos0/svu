@@ -9,6 +9,18 @@ import (
 	"github.com/gobwas/glob"
 )
 
+// Commit is a commit with a hash, title (first line of the message), and body
+// (rest of the message, not including the title).
+type Commit struct {
+	SHA   string
+	Title string
+	Body  string
+}
+
+func (c Commit) String() string {
+	return c.SHA + ": " + c.Title + "\n" + c.Body
+}
+
 const (
 	AllBranchesTagMode   = "all-branches"
 	CurrentBranchTagMode = "current-branch"
@@ -59,16 +71,12 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dir string) ([]string, error) {
+func Changelog(tag string, dir string) ([]Commit, error) {
 	if tag == "" {
 		return gitLog(dir, "HEAD")
 	} else {
 		return gitLog(dir, fmt.Sprintf("tags/%s..HEAD", tag))
 	}
-}
-
-func Format(ref string) (string, error) {
-	return run("log", "--format=%B", "-n1", ref)
 }
 
 func run(args ...string) (string, error) {
@@ -85,8 +93,8 @@ func run(args ...string) (string, error) {
 	return string(bts), nil
 }
 
-func gitLog(dir string, refs ...string) ([]string, error) {
-	args := []string{"log", "--no-decorate", "--no-color", "--oneline"}
+func gitLog(dir string, refs ...string) ([]Commit, error) {
+	args := []string{"log", "--no-decorate", "--no-color", `--format=%H:%B<svu-commit-end>`}
 	args = append(args, refs...)
 	if dir != "" {
 		args = append(args, "--", dir)
@@ -95,5 +103,24 @@ func gitLog(dir string, refs ...string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(s, "\n"), nil
+	var result []Commit
+	for _, commit := range strings.Split(s, "<svu-commit-end>") {
+		commit = strings.TrimSpace(commit)
+		if commit == "" { // accounts for the last split, which will be an empty line
+			continue
+		}
+
+		hashEndIdx := strings.Index(commit, ":")
+		titleEndIdx := strings.Index(commit, "\n")
+		if titleEndIdx < 0 {
+			titleEndIdx = len(commit)
+		}
+
+		result = append(result, Commit{
+			commit[:hashEndIdx],
+			commit[hashEndIdx+1 : titleEndIdx],
+			commit[min(titleEndIdx+1, len(commit)):],
+		})
+	}
+	return result, nil
 }

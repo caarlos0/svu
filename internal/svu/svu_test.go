@@ -5,77 +5,78 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/caarlos0/svu/v2/internal/git"
 	"github.com/matryer/is"
 )
 
 func TestIsBreaking(t *testing.T) {
-	for _, log := range []string{
-		"feat!: foo",
-		"chore(lala)!: foo",
-		"docs: lalala\nBREAKING CHANGE: lalal",
-		"docs: lalala\nBREAKING-CHANGE: lalal",
+	for _, commit := range []git.Commit{
+		{Title: "feat!: foo"},
+		{Title: "chore(lala)!: foo"},
+		{Title: "docs: lalala", Body: "BREAKING CHANGE: lalal"},
+		{Title: "docs: lalala", Body: "BREAKING-CHANGE: lalal"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(isBreaking(log)) // should be a major change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(isBreaking(commit)) // should be a major change
 		})
 	}
 
-	for _, log := range []string{
-		"feat: foo",
-		"chore(lol): foo",
-		"docs: lalala",
-		"docs: BREAKING change: lalal",
-		"docs: breaking-change: aehijhk",
-		"docs: BREAKING_CHANGE: foo",
+	for _, commit := range []git.Commit{
+		{Title: "feat: foo"},
+		{Title: "chore(lol): foo"},
+		{Title: "docs: lalala"},
+		{Title: "docs: BREAKING change: lalal"},
+		{Title: "docs: breaking-change: aehijhk"},
+		{Title: "docs: BREAKING_CHANGE: foo"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(!isBreaking(log)) // should NOT be a major change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(!isBreaking(commit)) // should NOT be a major change
 		})
 	}
 }
 
 func TestIsFeature(t *testing.T) {
-	for _, log := range []string{
-		"feat: foo",
-		"feat(lalal): foobar",
+	for _, commit := range []git.Commit{
+		{Title: "feat: foo"},
+		{Title: "feat(lalal): foobar"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(isFeature(log)) // should be a minor change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(isFeature(commit)) // should be a minor change
 		})
 	}
 
-	for _, log := range []string{
-		"fix: foo",
-		"chore: foo",
-		"docs: lalala",
-		"ci: foo",
-		"test: foo",
-		"Merge remote-tracking branch 'origin/main'",
-		"refactor: foo bar",
+	for _, commit := range []git.Commit{
+		{Title: "fix: foo"},
+		{Title: "chore: foo"},
+		{Title: "docs: lalala"},
+		{Title: "ci: foo"},
+		{Title: "test: foo"},
+		{Title: "Merge remote-tracking branch 'origin/main'"},
+		{Title: "refactor: foo bar"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(!isFeature(log)) // should NOT be a minor change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(!isFeature(commit)) // should NOT be a minor change
 		})
 	}
 }
 
 func TestIsPatch(t *testing.T) {
-	for _, log := range []string{
-		"fix: foo",
-		"fix(lalal): lalala",
+	for _, commit := range []git.Commit{
+		{Title: "fix: foo"},
+		{Title: "fix(lalal): lalala"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(isPatch(log)) // should be a patch change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(isPatch(commit)) // should be a patch change
 		})
 	}
 
-	for _, log := range []string{
-		"chore: foobar",
-		"docs: something",
-		"invalid commit",
+	for _, commit := range []git.Commit{
+		{Title: "chore: foobar"},
+		{Title: "docs: something"},
+		{Title: "invalid commit"},
 	} {
-		t.Run(log, func(t *testing.T) {
-			is.New(t).True(!isPatch(log)) // should NOT be a patch change
+		t.Run(commit.String(), func(t *testing.T) {
+			is.New(t).True(!isPatch(commit)) // should NOT be a patch change
 		})
 	}
 }
@@ -87,17 +88,17 @@ func TestFindNext(t *testing.T) {
 	version2 := semver.MustParse("v2.4.12")
 	version3 := semver.MustParse("v3.4.5-beta34+ads")
 	for expected, next := range map[string]semver.Version{
-		"v0.4.5": findNext(version0a, false, false, []string{"chore: should do nothing"}),
-		"v0.4.6": findNext(version0a, false, false, []string{"fix: inc patch"}),
-		"v0.5.0": findNext(version0a, false, false, []string{"feat: inc minor"}),
-		"v1.0.0": findNext(version0b, false, false, []string{"feat!: inc minor"}),
-		"v0.6.0": findNext(version0b, true, false, []string{"feat!: inc minor"}),
-		"v1.2.3": findNext(version1, false, false, []string{"chore: should do nothing"}),
-		"v1.2.4": findNext(version1, false, true, []string{"chore: is forcing patch, so should inc patch"}),
-		"v1.3.0": findNext(version1, false, false, []string{"feat: inc major"}),
-		"v2.0.0": findNext(version1, false, true, []string{"chore!: hashbang incs major"}),
-		"v3.0.0": findNext(version2, false, false, []string{"feat: something\nBREAKING CHANGE: increases major"}),
-		"v3.5.0": findNext(version3, false, false, []string{"feat: inc major"}),
+		"v0.4.5": findNext(version0a, false, false, []git.Commit{{Title: "chore: should do nothing"}}),
+		"v0.4.6": findNext(version0a, false, false, []git.Commit{{Title: "fix: inc patch"}}),
+		"v0.5.0": findNext(version0a, false, false, []git.Commit{{Title: "feat: inc minor"}}),
+		"v1.0.0": findNext(version0b, false, false, []git.Commit{{Title: "feat!: inc minor"}}),
+		"v0.6.0": findNext(version0b, true, false, []git.Commit{{Title: "feat!: inc minor"}}),
+		"v1.2.3": findNext(version1, false, false, []git.Commit{{Title: "chore: should do nothing"}}),
+		"v1.2.4": findNext(version1, false, true, []git.Commit{{Title: "chore: is forcing patch, so should inc patch"}}),
+		"v1.3.0": findNext(version1, false, false, []git.Commit{{Title: "feat: inc major"}}),
+		"v2.0.0": findNext(version1, false, true, []git.Commit{{Title: "chore!: hashbang incs major"}}),
+		"v3.0.0": findNext(version2, false, false, []git.Commit{{Title: "feat: something", Body: "BREAKING CHANGE: increases major"}}),
+		"v3.5.0": findNext(version3, false, false, []git.Commit{{Title: "feat: inc major"}}),
 	} {
 		t.Run(expected, func(t *testing.T) {
 			is.New(t).True(semver.MustParse(expected).Equal(&next)) // expected and next version should match

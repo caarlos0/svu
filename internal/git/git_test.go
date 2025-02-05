@@ -3,7 +3,6 @@ package git
 import (
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
@@ -87,30 +86,30 @@ func TestChangelog(t *testing.T) {
 	is := is.New(t)
 	log, err := Changelog("v1.2.3", "")
 	is.NoErr(err)
-	for _, msg := range []string{
+	for _, title := range []string{
 		"chore: foobar",
 		"fix: foo",
 		"feat: foobar",
 	} {
-		requireLogContains(t, log, msg)
+		requireLogContains(t, log, title)
 	}
 }
 
-func requireLogContains(tb testing.TB, log []string, msg string) {
+func requireLogContains(tb testing.TB, log []Commit, title string) {
 	tb.Helper()
 	for _, commit := range log {
-		if strings.HasSuffix(commit, msg) {
+		if commit.Title == title {
 			return
 		}
 	}
-	tb.Errorf("expected %v to contain a commit with msg %q", log, msg)
+	tb.Errorf("expected %v to contain a commit with msg %q", log, title)
 }
 
-func requireLogNotContains(tb testing.TB, log []string, msg string) {
+func requireLogNotContains(tb testing.TB, log []Commit, title string) {
 	tb.Helper()
 	for _, commit := range log {
-		if strings.HasSuffix(commit, msg) {
-			tb.Errorf("expected %v to not contain a commit with msg %q", log, msg)
+		if commit.Title == title {
+			tb.Errorf("expected %v to not contain a commit with msg %q", log, title)
 		}
 	}
 }
