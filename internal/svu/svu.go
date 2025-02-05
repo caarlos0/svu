@@ -204,29 +204,43 @@ func isPatch(commit git.Commit) bool {
 }
 
 func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, changes []git.Commit) semver.Version {
+	var major, minor, patch *git.Commit
 	for _, commit := range changes {
 		if isBreaking(commit) {
-			if current.Major() == 0 && preventMajorIncrementOnV0 {
-				_, _ = fmt.Fprintf(os.Stderr, "found major change, but prevent major increment is set: %s %s\n", commit.SHA, commit.Title)
-				return current.IncMinor()
-			}
-			_, _ = fmt.Fprintf(os.Stderr, "found major change: %s %s\n", commit.SHA, commit.Title)
-			return current.IncMajor()
+			major = &commit
+			break // no bigger change allowed, so we're done
 		}
 
-		if isFeature(commit) {
-			_, _ = fmt.Fprintf(os.Stderr, "found feature change: %s %s\n", commit.SHA, commit.Title)
-			return current.IncMinor()
+		if minor == nil && isFeature(commit) {
+			minor = &commit
 		}
 
-		if isPatch(commit) {
-			_, _ = fmt.Fprintf(os.Stderr, "found patch change:: %s %s\n", commit.SHA, commit.Title)
-			return current.IncPatch()
+		if patch == nil && isPatch(commit) {
+			patch = &commit
 		}
 	}
 
+	if major != nil {
+		if current.Major() == 0 && preventMajorIncrementOnV0 {
+			_, _ = fmt.Fprintf(os.Stderr, "found major change, but prevent major increment is set: %s %s\n", major.SHA, major.Title)
+			return current.IncMinor()
+		}
+		_, _ = fmt.Fprintf(os.Stderr, "found major change: %s %s\n", major.SHA, major.Title)
+		return current.IncMajor()
+	}
+
+	if minor != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "found minor change: %s %s\n", minor.SHA, minor.Title)
+		return current.IncMinor()
+	}
+
+	if patch != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "found patch change: %s %s\n", patch.SHA, patch.Title)
+		return current.IncPatch()
+	}
+
 	if forcePatchIncrement {
-		_, _ = fmt.Fprintln(os.Stderr, "found no changed, but force patch increment is set")
+		_, _ = fmt.Fprintln(os.Stderr, "found no changes, but force patch increment is set")
 		return current.IncPatch()
 	}
 	return *current
