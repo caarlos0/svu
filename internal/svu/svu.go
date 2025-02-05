@@ -2,6 +2,7 @@ package svu
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -190,33 +191,43 @@ func findNextWithGitLog(current *semver.Version, tag string, directory string, p
 	return findNext(current, preventMajorIncrementOnV0, forcePatchIncrement, log), nil
 }
 
-func isBreaking(log string) bool {
-	return breaking.MatchString(log) || breakingBang.MatchString(log)
+func isBreaking(commit git.Commit) bool {
+	return breaking.MatchString(commit.Body) || breakingBang.MatchString(commit.Title)
 }
 
-func isFeature(log string) bool {
-	return feature.MatchString(log)
+func isFeature(commit git.Commit) bool {
+	return feature.MatchString(commit.Title)
 }
 
-func isPatch(log string) bool {
-	return patch.MatchString(log)
+func isPatch(commit git.Commit) bool {
+	return patch.MatchString(commit.Title)
 }
 
-func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, log string) semver.Version {
-	if isBreaking(log) {
-		if current.Major() == 0 && preventMajorIncrementOnV0 {
+func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, changes []git.Commit) semver.Version {
+	for _, commit := range changes {
+		if isBreaking(commit) {
+			if current.Major() == 0 && preventMajorIncrementOnV0 {
+				_, _ = fmt.Fprintf(os.Stderr, "found major change, but prevent major increment is set: %s %s\n", commit.SHA, commit.Title)
+				return current.IncMinor()
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "found major change: %s %s\n", commit.SHA, commit.Title)
+			return current.IncMajor()
+		}
+
+		if isFeature(commit) {
+			_, _ = fmt.Fprintf(os.Stderr, "found feature change: %s %s\n", commit.SHA, commit.Title)
 			return current.IncMinor()
 		}
-		return current.IncMajor()
+
+		if isPatch(commit) {
+			_, _ = fmt.Fprintf(os.Stderr, "found patch change:: %s %s\n", commit.SHA, commit.Title)
+			return current.IncPatch()
+		}
 	}
 
-	if isFeature(log) {
-		return current.IncMinor()
-	}
-
-	if forcePatchIncrement || isPatch(log) {
+	if forcePatchIncrement {
+		_, _ = fmt.Fprintln(os.Stderr, "found no changed, but force patch increment is set")
 		return current.IncPatch()
 	}
-
 	return *current
 }

@@ -3,7 +3,6 @@ package git
 import (
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
@@ -87,12 +86,31 @@ func TestChangelog(t *testing.T) {
 	is := is.New(t)
 	log, err := Changelog("v1.2.3", "")
 	is.NoErr(err)
-	for _, msg := range []string{
+	for _, title := range []string{
 		"chore: foobar",
 		"fix: foo",
 		"feat: foobar",
 	} {
-		is.True(strings.Contains(log, msg)) // log should contain commit
+		requireLogContains(t, log, title)
+	}
+}
+
+func requireLogContains(tb testing.TB, log []Commit, title string) {
+	tb.Helper()
+	for _, commit := range log {
+		if commit.Title == title {
+			return
+		}
+	}
+	tb.Errorf("expected %v to contain a commit with msg %q", log, title)
+}
+
+func requireLogNotContains(tb testing.TB, log []Commit, title string) {
+	tb.Helper()
+	for _, commit := range log {
+		if commit.Title == title {
+			tb.Errorf("expected %v to not contain a commit with msg %q", log, title)
+		}
 	}
 }
 
@@ -111,8 +129,8 @@ func TestChangelogWithDirectory(t *testing.T) {
 	log, err := Changelog("v1.2.3", localDir)
 	is.NoErr(err)
 
-	is.True(strings.Contains(log, "chore: filtered dir"))
-	is.True(!strings.Contains(log, "feat: foobar"))
+	requireLogContains(t, log, "chore: filtered dir")
+	requireLogNotContains(t, log, "feat: foobar")
 }
 
 func switchToBranch(tb testing.TB, branch string) {
@@ -167,7 +185,7 @@ func tempdir(tb testing.TB) string {
 func dir(tempDir string, tb testing.TB) string {
 	is := is.New(tb)
 	createdDir := path.Join(tempDir, "a-folder")
-	err := os.Mkdir(createdDir, 0755)
+	err := os.Mkdir(createdDir, 0o755)
 	is.NoErr(err)
 	return createdDir
 }
@@ -176,7 +194,7 @@ func tempfile(tb testing.TB, dir string) string {
 	is := is.New(tb)
 	d1 := []byte("hello\ngo\n")
 	file := path.Join(dir, "a-file.txt")
-	err := os.WriteFile(file, d1, 0644)
+	err := os.WriteFile(file, d1, 0o644)
 	is.NoErr(err)
 	return file
 }
