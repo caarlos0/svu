@@ -5,59 +5,117 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/alecthomas/kingpin/v2"
+	"github.com/caarlos0/svu/v2/internal/git"
 	"github.com/caarlos0/svu/v2/internal/svu"
-)
-
-var (
-	app           = kingpin.New("svu", "semantic version util")
-	nextCmd       = app.Command("next", "prints the next version based on the git log").Alias("n").Default()
-	majorCmd      = app.Command("major", "new major version")
-	minorCmd      = app.Command("minor", "new minor version").Alias("m")
-	patchCmd      = app.Command("patch", "new patch version").Alias("p")
-	currentCmd    = app.Command("current", "prints current version").Alias("c")
-	preReleaseCmd = app.Command("prerelease", "new pre release version based on the next version calculated from git log").
-			Alias("pr")
-	preRelease  = app.Flag("pre-release", "adds a pre-release suffix to the version, without the semver mandatory dash prefix").
-			String()
-	pattern     = app.Flag("pattern", "limits calculations to be based on tags matching the given pattern").String()
-	prefix      = app.Flag("prefix", "set a custom prefix").Default("v").String()
-	stripPrefix = app.Flag("strip-prefix", "strips the prefix from the tag").Default("false").Bool()
-	build       = app.Flag("build", "adds a build suffix to the version, without the semver mandatory plug prefix").
-			String()
-	directory = app.Flag("directory", "specifies directory to filter commit messages by").Default("").String()
-	tagMode   = app.Flag("tag-mode", "determines if latest tag of the current or all branches will be used").
-			Default("current-branch").
-			Enum("current-branch", "all-branches")
-	forcePatchIncrement = nextCmd.Flag("force-patch-increment", "forces a patch version increment regardless of the commit message content").
-				Default("false").
-				Bool()
-	preventMajorIncrementOnV0 = nextCmd.Flag("no-increment-v0", "prevent major version increments when its still v0").
-					Default("false").
-					Bool()
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	app.Author("Carlos Alexandro Becker <carlos@becker.software>")
-	app.Version(buildVersion(version, commit, date, builtBy))
-	app.VersionFlag.Short('v')
-	app.HelpFlag.Short('h')
-	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
+	var opts svu.Options
 
-	version, err := svu.Version(svu.Options{
-		Cmd:                       cmd,
-		Pattern:                   *pattern,
-		Prefix:                    *prefix,
-		StripPrefix:               *stripPrefix,
-		PreRelease:                *preRelease,
-		Build:                     *build,
-		Directory:                 *directory,
-		TagMode:                   *tagMode,
-		ForcePatchIncrement:       *forcePatchIncrement,
-		PreventMajorIncrementOnV0: *preventMajorIncrementOnV0,
-	})
-	app.FatalIfError(err, "")
-	fmt.Println(version)
+	runFunc := func(cmd *cobra.Command, _ []string) error {
+		version, err := svu.Version(opts)
+		if err != nil {
+			return err
+		}
+		cmd.Println(version)
+		return nil
+	}
+
+	root := &cobra.Command{
+		Use:          "svu",
+		Short:        "Semantic Version Util",
+		Long:         "Semantic Version Util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
+		Version:      buildVersion(version, commit, date, builtBy),
+		SilenceUsage: true,
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			switch opts.TagMode {
+			case git.AllBranchesTagMode, git.CurrentBranchTagMode:
+			default:
+				return fmt.Errorf("invalid tag-mode: %s", opts.TagMode)
+			}
+			return nil
+		},
+	}
+
+	prerelease := &cobra.Command{
+		Use:     "prerelease",
+		Aliases: []string{"pr"},
+		Short:   "Increases the build portion of the prerelease",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.PreReleaseCmd
+			return runFunc(cmd, args)
+		},
+	}
+	next := &cobra.Command{
+		Use:     "next",
+		Aliases: []string{"n"},
+		Short:   "Next version based on git history",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.NextCmd
+			return runFunc(cmd, args)
+		},
+	}
+	major := &cobra.Command{
+		Use:   "major",
+		Short: "New major release",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.MajorCmd
+			return runFunc(cmd, args)
+		},
+	}
+	minor := &cobra.Command{
+		Use:     "minor",
+		Short:   "New minor release",
+		Aliases: []string{"m"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.MinorCmd
+			return runFunc(cmd, args)
+		},
+	}
+	patch := &cobra.Command{
+		Use:     "patch",
+		Short:   "New patch release",
+		Aliases: []string{"p"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.PatchCmd
+			return runFunc(cmd, args)
+		},
+	}
+	current := &cobra.Command{
+		Use:     "current",
+		Short:   "Current version",
+		Aliases: []string{"c"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Cmd = svu.CurrentCmd
+			return runFunc(cmd, args)
+		},
+	}
+
+	root.PersistentFlags().StringVar(&opts.Pattern, "pattern", "", "limits calculations to be based on tags matching the given pattern")
+
+	root.PersistentFlags().StringVar(&opts.Prefix, "prefix", "v", "sets a custom prefix")
+	root.PersistentFlags().BoolVar(&opts.StripPrefix, "strip-prefix", false, "strips any prefixes the tag might have")
+	root.PersistentFlags().StringVar(&opts.Directory, "directory", ".", "limit git operations to a directory")
+	root.PersistentFlags().StringVar(&opts.TagMode, "tag-mode", "current-branch", "determines if latest tag of the current or all branches will be used (curent-branch, all-branches)")
+
+	next.Flags().StringVar(&opts.Build, "build", "", "adds a build suffix to the version, without the semver mandatory plug prefix")
+	next.Flags().StringVar(&opts.PreRelease, "pre-release", "", "adds a pre-release suffix to the version, without the semver mandatory dash prefix")
+	next.Flags().BoolVar(&opts.ForcePatchIncrement, "force-patch-increment", false, "forces a patch version increment regardless of the commit message content")
+	next.Flags().BoolVar(&opts.PreventMajorIncrementOnV0, "no-increment-v0", false, "prevent major version increments when its still v0")
+
+	root.AddCommand(
+		next,
+		major,
+		minor,
+		patch,
+		current,
+		prerelease,
+	)
+
+	if err := root.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
 
 // nolint: gochecknoglobals
