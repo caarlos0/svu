@@ -8,12 +8,14 @@ import (
 	"github.com/caarlos0/svu/v2/internal/git"
 	"github.com/caarlos0/svu/v2/internal/svu"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 func main() {
 	var opts svu.Options
 
-	runFunc := func(cmd *cobra.Command, _ []string) error {
+	runFunc := func(cmd *cobra.Command) error {
 		version, err := svu.Version(opts)
 		if err != nil {
 			return err
@@ -24,8 +26,8 @@ func main() {
 
 	root := &cobra.Command{
 		Use:          "svu",
-		Short:        "Semantic Version Util",
-		Long:         "Semantic Version Util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
+		Short:        "semantic version util",
+		Long:         "semantic version util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
 		Version:      buildVersion(version, commit, date, builtBy),
 		SilenceUsage: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
@@ -49,7 +51,7 @@ func main() {
 		Short:   "Increases the build portion of the prerelease",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.PreReleaseCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 	next := &cobra.Command{
@@ -58,7 +60,7 @@ func main() {
 		Short:   "Next version based on git history",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.NextCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 	major := &cobra.Command{
@@ -66,7 +68,7 @@ func main() {
 		Short: "New major release",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.MajorCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 	minor := &cobra.Command{
@@ -75,7 +77,7 @@ func main() {
 		Aliases: []string{"m"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.MinorCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 	patch := &cobra.Command{
@@ -84,7 +86,7 @@ func main() {
 		Aliases: []string{"p"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.PatchCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 	current := &cobra.Command{
@@ -93,7 +95,7 @@ func main() {
 		Aliases: []string{"c"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Cmd = svu.CurrentCmd
-			return runFunc(cmd, args)
+			return runFunc(cmd)
 		},
 	}
 
@@ -101,11 +103,11 @@ func main() {
 	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
 	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeCurrent, "determine if it should look for tags in all branches, or just the current one")
 
-	next.PersistentFlags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
-	next.Flags().StringVar(&opts.Build, "build", "", "adds a build suffix to the version, without the semver mandatory plug prefix")
-	next.Flags().StringVar(&opts.PreRelease, "pre-release", "", "adds a pre-release suffix to the version, without the semver mandatory dash prefix")
+	next.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
+	next.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
+	next.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
 	next.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
-	next.Flags().BoolVar(&opts.KeepV0, "keep-v0", false, "prevent major version increments if current version is still v0")
+	next.Flags().BoolVar(&opts.KeepV0, "v0", false, "prevent major version increments if current version is still v0")
 
 	root.AddCommand(
 		next,
@@ -116,8 +118,36 @@ func main() {
 		prerelease,
 	)
 
+	home, _ := os.UserHomeDir()
+	config, _ := os.UserConfigDir()
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("svu")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath(git.Root())
+	viper.AddConfigPath(config)
+	viper.AddConfigPath(home)
+	viper.SetConfigName(".svu")
+	viper.SetConfigType("yaml")
+	cobra.OnInitialize(func() {
+		if viper.ReadInConfig() == nil {
+			presetRequiredFlags(root)
+		}
+	})
+
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
+	}
+}
+
+func presetRequiredFlags(cmd *cobra.Command) {
+	viper.BindPFlags(cmd.Flags())
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if viper.IsSet(f.Name) && viper.GetString(f.Name) != "" {
+			cmd.Flags().Set(f.Name, viper.GetString(f.Name))
+		}
+	})
+	for _, scmd := range cmd.Commands() {
+		presetRequiredFlags(scmd)
 	}
 }
 

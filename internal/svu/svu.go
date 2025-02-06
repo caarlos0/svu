@@ -32,7 +32,7 @@ type Options struct {
 	Pattern     string
 	Prefix      string
 	PreRelease  string
-	Build       string
+	Metadata    string
 	Directories []string
 	TagMode     string
 	Always      bool
@@ -55,7 +55,7 @@ func Version(opts Options) (string, error) {
 		current,
 		tag,
 		opts.PreRelease,
-		opts.Build,
+		opts.Metadata,
 		opts.Directories,
 		opts.KeepV0,
 		opts.Always,
@@ -70,15 +70,15 @@ func Version(opts Options) (string, error) {
 func nextVersion(
 	cmd string,
 	current *semver.Version,
-	tag, preRelease, build string,
+	tag, prerelease, metadata string,
 	directories []string,
-	preventMajorIncrementOnV0, forcePatchIncrement bool,
+	keepV0, always bool,
 ) (semver.Version, error) {
 	if cmd == CurrentCmd {
 		return *current, nil
 	}
 
-	if forcePatchIncrement {
+	if always {
 		c, err := current.SetMetadata("")
 		if err != nil {
 			return c, err
@@ -94,7 +94,7 @@ func nextVersion(
 	var err error
 	switch cmd {
 	case NextCmd, PreReleaseCmd:
-		result, err = findNextWithGitLog(current, tag, directories, preventMajorIncrementOnV0, forcePatchIncrement)
+		result, err = findNextWithGitLog(current, tag, directories, keepV0, always)
 	case MajorCmd:
 		result = current.IncMajor()
 	case MinorCmd:
@@ -107,40 +107,40 @@ func nextVersion(
 	}
 
 	if cmd == PreReleaseCmd {
-		result, err = nextPreRelease(current, &result, preRelease)
+		result, err = nextPreRelease(current, &result, prerelease)
 		if err != nil {
 			return result, err
 		}
 	} else {
-		result, err = result.SetPrerelease(preRelease)
+		result, err = result.SetPrerelease(prerelease)
 		if err != nil {
 			return result, err
 		}
 	}
 
-	result, err = result.SetMetadata(build)
+	result, err = result.SetMetadata(metadata)
 	if err != nil {
 		return result, err
 	}
 	return result, nil
 }
 
-func nextPreRelease(current, next *semver.Version, preRelease string) (semver.Version, error) {
+func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Version, error) {
 	suffix := ""
-	if preRelease != "" {
+	if prerelease != "" {
 		// Check if the suffix already contains a version number, if it does assume the user wants to explicitly set the version so use that
-		splitPreRelease := strings.Split(preRelease, ".")
+		splitPreRelease := strings.Split(prerelease, ".")
 		if len(splitPreRelease) > 1 {
 			if _, err := strconv.Atoi(splitPreRelease[len(splitPreRelease)-1]); err == nil {
-				return current.SetPrerelease(preRelease)
+				return current.SetPrerelease(prerelease)
 			}
 		}
 
-		suffix = preRelease
+		suffix = prerelease
 
 		// Check if the prerelease suffix is the same as the current prerelease
 		preSuffix := strings.Split(current.Prerelease(), ".")[0]
-		if preSuffix == preRelease {
+		if preSuffix == prerelease {
 			suffix = current.Prerelease()
 		}
 	} else if current.Prerelease() != "" {

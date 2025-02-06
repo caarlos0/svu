@@ -50,15 +50,15 @@ func WithPrefix(prefix string) option {
 	}
 }
 
-func WithPreRelease(preRelease string) option {
+func WithPreRelease(prerelease string) option {
 	return func(o *svu.Options) {
-		o.PreRelease = preRelease
+		o.PreRelease = prerelease
 	}
 }
 
-func WithBuild(build string) option {
+func WithMetadata(metadata string) option {
 	return func(o *svu.Options) {
-		o.Build = build
+		o.Metadata = metadata
 	}
 }
 
