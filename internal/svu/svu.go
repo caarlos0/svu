@@ -21,8 +21,8 @@ const (
 )
 
 var (
-	breaking     = regexp.MustCompile("(?m).*BREAKING[ -]CHANGE:.*")
-	breakingBang = regexp.MustCompile(`(?im).*(\w+)(\(.*\))?!:.*`)
+	breakingBody = regexp.MustCompile("(?m).*BREAKING[ -]CHANGE:.*")
+	breaking     = regexp.MustCompile(`(?im).*(\w+)(\(.*\))?!:.*`)
 	feature      = regexp.MustCompile(`(?im).*feat(\(.*\))?:.*`)
 	patch        = regexp.MustCompile(`(?im).*fix(\(.*\))?:.*`)
 )
@@ -192,7 +192,7 @@ func findNextWithGitLog(current *semver.Version, tag string, directory string, p
 }
 
 func isBreaking(commit git.Commit) bool {
-	return breaking.MatchString(commit.Body) || breakingBang.MatchString(commit.Title)
+	return breakingBody.MatchString(commit.Body) || breaking.MatchString(commit.Title)
 }
 
 func isFeature(commit git.Commit) bool {
