@@ -124,6 +124,6 @@ Or download one from the [releases tab](https://github.com/caarlos0/svu/releases
 
 ## stargazers over time
 
-[![Stargazers over time](https://starchart.cc/caarlos0/svu.svg)](https://starchart.cc/caarlos0/svu)
+[![Stargazers over time](https://starchart.cc/caarlos0/svu.svg?variant=adaptive)](https://starchart.cc/caarlos0/svu)
 
 [Semver]: https://semver.org
