@@ -121,6 +121,7 @@ func main() {
 	home, _ := os.UserHomeDir()
 	config, _ := os.UserConfigDir()
 	viper.AutomaticEnv()
+	viper.SetEnvPrefix("svu")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath(git.Root())
 	viper.AddConfigPath(config)
