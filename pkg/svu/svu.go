@@ -8,8 +8,8 @@ import (
 type TagMode string
 
 const (
-	CurrentBranch TagMode = git.CurrentBranchTagMode
-	AllBranches   TagMode = git.AllBranchesTagMode
+	CurrentBranch TagMode = git.TagModeCurrent
+	AllBranches   TagMode = git.TagModeAll
 )
 
 type option func(o *svu.Options)
@@ -50,16 +50,6 @@ func WithPrefix(prefix string) option {
 	}
 }
 
-func WithStripPrefix(stripPrefix bool) option {
-	return func(o *svu.Options) {
-		o.StripPrefix = stripPrefix
-	}
-}
-
-func StripPrefix() option {
-	return WithStripPrefix(true)
-}
-
 func WithPreRelease(preRelease string) option {
 	return func(o *svu.Options) {
 		o.PreRelease = preRelease
@@ -72,9 +62,9 @@ func WithBuild(build string) option {
 	}
 }
 
-func WithDirectory(directory string) option {
+func WithDirectories(directories ...string) option {
 	return func(o *svu.Options) {
-		o.Directory = directory
+		o.Directories = append(o.Directories, directories...)
 	}
 }
 
@@ -92,14 +82,10 @@ func ForAllBranches() option {
 	return WithTagMode(AllBranches)
 }
 
-func WithForcePatchIncrement(forcePatchIncrement bool) option {
+func WithAlwaysPatch() option {
 	return func(o *svu.Options) {
-		o.ForcePatchIncrement = forcePatchIncrement
+		o.Always = true
 	}
-}
-
-func ForcePatchIncrement() option {
-	return WithForcePatchIncrement(true)
 }
 
 func version(opts ...option) (string, error) {

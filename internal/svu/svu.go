@@ -28,16 +28,15 @@ var (
 )
 
 type Options struct {
-	Cmd                       string
-	Pattern                   string
-	Prefix                    string
-	StripPrefix               bool
-	PreRelease                string
-	Build                     string
-	Directory                 string
-	TagMode                   string
-	ForcePatchIncrement       bool
-	PreventMajorIncrementOnV0 bool
+	Cmd         string
+	Pattern     string
+	Prefix      string
+	PreRelease  string
+	Build       string
+	Directories []string
+	TagMode     string
+	Always      bool
+	KeepV0      bool
 }
 
 func Version(opts Options) (string, error) {
@@ -57,21 +56,24 @@ func Version(opts Options) (string, error) {
 		tag,
 		opts.PreRelease,
 		opts.Build,
-		opts.Directory,
-		opts.PreventMajorIncrementOnV0,
-		opts.ForcePatchIncrement,
+		opts.Directories,
+		opts.KeepV0,
+		opts.Always,
 	)
 	if err != nil {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
 	}
 
-	if opts.StripPrefix {
-		return result.String(), nil
-	}
 	return opts.Prefix + result.String(), nil
 }
 
-func nextVersion(cmd string, current *semver.Version, tag, preRelease, build, directory string, preventMajorIncrementOnV0, forcePatchIncrement bool) (semver.Version, error) {
+func nextVersion(
+	cmd string,
+	current *semver.Version,
+	tag, preRelease, build string,
+	directories []string,
+	preventMajorIncrementOnV0, forcePatchIncrement bool,
+) (semver.Version, error) {
 	if cmd == CurrentCmd {
 		return *current, nil
 	}
@@ -92,7 +94,7 @@ func nextVersion(cmd string, current *semver.Version, tag, preRelease, build, di
 	var err error
 	switch cmd {
 	case NextCmd, PreReleaseCmd:
-		result, err = findNextWithGitLog(current, tag, directory, preventMajorIncrementOnV0, forcePatchIncrement)
+		result, err = findNextWithGitLog(current, tag, directories, preventMajorIncrementOnV0, forcePatchIncrement)
 	case MajorCmd:
 		result = current.IncMajor()
 	case MinorCmd:
@@ -182,8 +184,13 @@ func getCurrentVersion(tag, prefix string) (*semver.Version, error) {
 	return current, err
 }
 
-func findNextWithGitLog(current *semver.Version, tag string, directory string, preventMajorIncrementOnV0, forcePatchIncrement bool) (semver.Version, error) {
-	log, err := git.Changelog(tag, directory)
+func findNextWithGitLog(
+	current *semver.Version,
+	tag string,
+	directories []string,
+	preventMajorIncrementOnV0, forcePatchIncrement bool,
+) (semver.Version, error) {
+	log, err := git.Changelog(tag, directories)
 	if err != nil {
 		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
 	}

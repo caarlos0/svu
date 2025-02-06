@@ -43,23 +43,23 @@ func TestDescribeTag(t *testing.T) {
 		gitTag(tb, "v1.2.5-prerelease")
 		switchToBranch(tb, "-")
 	}
-	t.Run("normal", func(t *testing.T) {
+	t.Run(TagModeCurrent, func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag("current-branch", "")
+		tag, err := DescribeTag(TagModeCurrent, "")
 		require.NoError(t, err)
 		require.Equal(t, "v1.2.4", tag)
 	})
 
-	t.Run("all-branches", func(t *testing.T) {
+	t.Run(TagModeAll, func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag("all-branches", "")
+		tag, err := DescribeTag(TagModeAll, "")
 		require.NoError(t, err)
 		require.Equal(t, "v1.2.5", tag)
 	})
 
 	t.Run("pattern", func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag("current-branch", "pattern-*")
+		tag, err := DescribeTag(TagModeCurrent, "pattern-*")
 		require.NoError(t, err)
 		require.Equal(t, "pattern-1.2.3", tag)
 	})
@@ -78,7 +78,7 @@ func TestChangelog(t *testing.T) {
 	} {
 		gitCommit(t, msg)
 	}
-	log, err := Changelog("v1.2.3", "")
+	log, err := Changelog("v1.2.3", nil)
 	require.NoError(t, err)
 	for _, title := range []string{
 		"chore: foobar",
@@ -119,7 +119,7 @@ func TestChangelogWithDirectory(t *testing.T) {
 	gitCommit(t, "feat: foobar")
 	gitAdd(t, file)
 	gitCommit(t, "chore: filtered dir")
-	log, err := Changelog("v1.2.3", localDir)
+	log, err := Changelog("v1.2.3", []string{localDir})
 	require.NoError(t, err)
 
 	requireLogContains(t, log, "chore: filtered dir")
