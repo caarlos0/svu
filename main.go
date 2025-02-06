@@ -123,8 +123,9 @@ func main() {
 	viper.SetConfigName(".svu")
 	viper.SetConfigType("yaml")
 	cobra.OnInitialize(func() {
-		cobra.CheckErr(viper.ReadInConfig())
-		presetRequiredFlags(root)
+		if viper.ReadInConfig() == nil {
+			presetRequiredFlags(root)
+		}
 	})
 
 	if err := root.Execute(); err != nil {
