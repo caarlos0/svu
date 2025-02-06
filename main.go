@@ -30,9 +30,14 @@ func main() {
 		SilenceUsage: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			switch opts.TagMode {
-			case git.AllBranchesTagMode, git.CurrentBranchTagMode:
+			case git.TagModeAll, git.TagModeCurrent:
 			default:
-				return fmt.Errorf("invalid tag-mode: %s", opts.TagMode)
+				return fmt.Errorf(
+					"invalid tag-mode: %q: valid options are %q and %q",
+					opts.TagMode,
+					git.TagModeCurrent,
+					git.TagModeAll,
+				)
 			}
 			return nil
 		},
@@ -92,17 +97,15 @@ func main() {
 		},
 	}
 
-	root.PersistentFlags().StringVar(&opts.Pattern, "pattern", "", "limits calculations to be based on tags matching the given pattern")
+	root.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
+	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
+	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeCurrent, "determine if it should look for tags in all branches, or just the current one")
 
-	root.PersistentFlags().StringVar(&opts.Prefix, "prefix", "v", "sets a custom prefix")
-	root.PersistentFlags().BoolVar(&opts.StripPrefix, "strip-prefix", false, "strips any prefixes the tag might have")
-	root.PersistentFlags().StringVar(&opts.Directory, "directory", ".", "limit git operations to a directory")
-	root.PersistentFlags().StringVar(&opts.TagMode, "tag-mode", "current-branch", "determines if latest tag of the current or all branches will be used (curent-branch, all-branches)")
-
+	next.PersistentFlags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
 	next.Flags().StringVar(&opts.Build, "build", "", "adds a build suffix to the version, without the semver mandatory plug prefix")
 	next.Flags().StringVar(&opts.PreRelease, "pre-release", "", "adds a pre-release suffix to the version, without the semver mandatory dash prefix")
-	next.Flags().BoolVar(&opts.ForcePatchIncrement, "force-patch-increment", false, "forces a patch version increment regardless of the commit message content")
-	next.Flags().BoolVar(&opts.PreventMajorIncrementOnV0, "no-increment-v0", false, "prevent major version increments when its still v0")
+	next.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
+	next.Flags().BoolVar(&opts.KeepV0, "keep-v0", false, "prevent major version increments if current version is still v0")
 
 	root.AddCommand(
 		next,
@@ -126,6 +129,7 @@ var (
 	builtBy = ""
 )
 
+// TODO: use version lib
 func buildVersion(version, commit, date, builtBy string) string {
 	result := "svu version " + version
 	if commit != "" {
