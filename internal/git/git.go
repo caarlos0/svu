@@ -34,6 +34,11 @@ func IsRepo() bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
+func Root() string {
+	out, _ := run("rev-parse", "--show-toplevel")
+	return strings.TrimSpace(out)
+}
+
 func getAllTags(args ...string) ([]string, error) {
 	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
 	if err != nil {
