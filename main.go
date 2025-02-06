@@ -118,8 +118,13 @@ func main() {
 		prerelease,
 	)
 
+	home, _ := os.UserHomeDir()
+	config, _ := os.UserConfigDir()
+	viper.AutomaticEnv()
 	viper.AddConfigPath(".")
 	viper.AddConfigPath(git.Root())
+	viper.AddConfigPath(config)
+	viper.AddConfigPath(home)
 	viper.SetConfigName(".svu")
 	viper.SetConfigType("yaml")
 	cobra.OnInitialize(func() {
