@@ -1,10 +1,11 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
-	"runtime/debug"
 
+	goversion "github.com/caarlos0/go-version"
 	"github.com/caarlos0/svu/v3/internal/git"
 	"github.com/caarlos0/svu/v3/internal/svu"
 	"github.com/spf13/cobra"
@@ -28,7 +29,7 @@ func main() {
 		Use:          "svu",
 		Short:        "semantic version util",
 		Long:         "semantic version util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
-		Version:      buildVersion(version, commit, date, builtBy),
+		Version:      buildVersion(version, commit, date, builtBy).String(),
 		SilenceUsage: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			switch opts.TagMode {
@@ -99,6 +100,8 @@ func main() {
 		},
 	}
 
+	root.SetVersionTemplate("{{.Version}}")
+
 	root.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
 	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeCurrent, "determine if it should look for tags in all branches, or just the current one")
@@ -153,26 +156,36 @@ func presetRequiredFlags(cmd *cobra.Command) {
 
 // nolint: gochecknoglobals
 var (
-	version = "dev"
-	commit  = ""
-	date    = ""
-	builtBy = ""
+	version   = ""
+	commit    = ""
+	date      = ""
+	builtBy   = ""
+	treeState = ""
 )
 
-// TODO: use version lib
-func buildVersion(version, commit, date, builtBy string) string {
-	result := "svu version " + version
-	if commit != "" {
-		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
-	}
-	if date != "" {
-		result = fmt.Sprintf("%s\nbuilt at: %s", result, date)
-	}
-	if builtBy != "" {
-		result = fmt.Sprintf("%s\nbuilt by: %s", result, builtBy)
-	}
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
-		result = fmt.Sprintf("%s\nmodule version: %s, checksum: %s", result, info.Main.Version, info.Main.Sum)
-	}
-	return result
+//go:embed art.txt
+var asciiArt string
+
+func buildVersion(version, commit, date, builtBy string) goversion.Info {
+	return goversion.GetVersionInfo(
+		goversion.WithAppDetails("svu", "Semantic Version Util", "https://github.com/caarlos0/svu"),
+		goversion.WithASCIIName(asciiArt),
+		func(i *goversion.Info) {
+			if commit != "" {
+				i.GitCommit = commit
+			}
+			if treeState != "" {
+				i.GitTreeState = treeState
+			}
+			if date != "" {
+				i.BuildDate = date
+			}
+			if version != "" {
+				i.GitVersion = version
+			}
+			if builtBy != "" {
+				i.BuiltBy = builtBy
+			}
+		},
+	)
 }
