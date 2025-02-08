@@ -1,3 +1,4 @@
+// Package svu provides a Go API to SVU.
 package svu
 
 import (
@@ -5,94 +6,107 @@ import (
 	"github.com/caarlos0/svu/v2/internal/svu"
 )
 
-type TagMode string
-
-const (
-	CurrentBranch TagMode = git.TagModeCurrent
-	AllBranches   TagMode = git.TagModeAll
-)
-
 type option func(o *svu.Options)
 
+// Next returns the next version based on the git log.
 func Next(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.NextCmd))...)
+	return version(append(opts, cmd(svu.Next))...)
 }
 
+// Major increase the major part of the version.
 func Major(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.MajorCmd))...)
+	return version(append(opts, cmd(svu.Major))...)
 }
 
+// Minor increase the minor part of the version.
 func Minor(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.MinorCmd))...)
+	return version(append(opts, cmd(svu.Minor))...)
 }
 
+// Patch increase the patch part of the version.
 func Patch(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.PatchCmd))...)
+	return version(append(opts, cmd(svu.Patch))...)
 }
 
+// Current returns the current version.
 func Current(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.CurrentCmd))...)
+	return version(append(opts, cmd(svu.Current))...)
 }
 
+// PreRelease returns the next pre-release version.
 func PreRelease(opts ...option) (string, error) {
-	return version(append(opts, cmd(svu.PreReleaseCmd))...)
+	return version(append(opts, cmd(svu.PreRelease))...)
 }
 
+// WithPattern ignores tags that do not match the given pattern.
 func WithPattern(pattern string) option {
 	return func(o *svu.Options) {
 		o.Pattern = pattern
 	}
 }
 
+// WithPrefix sets the version prefix.
 func WithPrefix(prefix string) option {
 	return func(o *svu.Options) {
 		o.Prefix = prefix
 	}
 }
 
+// WithPreRelease sets the version prerelease.
 func WithPreRelease(prerelease string) option {
 	return func(o *svu.Options) {
 		o.PreRelease = prerelease
 	}
 }
 
+// WithMetadata sets the version metadata.
 func WithMetadata(metadata string) option {
 	return func(o *svu.Options) {
 		o.Metadata = metadata
 	}
 }
 
+// WithDirectories only use commits that changed files in the given directories.
 func WithDirectories(directories ...string) option {
 	return func(o *svu.Options) {
 		o.Directories = append(o.Directories, directories...)
 	}
 }
 
-func WithTagMode(tagMode TagMode) option {
+// ForCurrentBranch look for tags in the current branch only.
+func ForCurrentBranch() option {
 	return func(o *svu.Options) {
-		o.TagMode = string(tagMode)
+		o.TagMode = git.TagModeCurrent
 	}
 }
 
-func ForCurrentBranch() option {
-	return WithTagMode(CurrentBranch)
-}
-
+// ForAllBranches look for tags in all branches.
 func ForAllBranches() option {
-	return WithTagMode(AllBranches)
+	return func(o *svu.Options) {
+		o.TagMode = git.TagModeAll
+	}
 }
 
-func WithAlwaysPatch() option {
+// Always if no commits would have increased the version, increase the
+// patch portion anyway.
+func Always() option {
 	return func(o *svu.Options) {
 		o.Always = true
 	}
 }
 
+// KeepV0 prevents major upgrades if current version is a v0.
+func KeepV0() option {
+	return func(o *svu.Options) {
+		o.KeepV0 = true
+	}
+}
+
 func version(opts ...option) (string, error) {
 	options := &svu.Options{
-		Cmd:     svu.NextCmd,
+		Action:  svu.Next,
 		Prefix:  "v",
-		TagMode: string(CurrentBranch),
+		TagMode: git.TagModeCurrent,
 	}
 	for _, opt := range opts {
 		opt(options)
@@ -100,8 +114,8 @@ func version(opts ...option) (string, error) {
 	return svu.Version(*options)
 }
 
-func cmd(cmd string) option {
+func cmd(cmd svu.Action) option {
 	return func(o *svu.Options) {
-		o.Cmd = cmd
+		o.Action = cmd
 	}
 }

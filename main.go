@@ -50,7 +50,7 @@ func main() {
 		Aliases: []string{"pr"},
 		Short:   "Increases the build portion of the prerelease",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.PreReleaseCmd
+			opts.Action = svu.PreRelease
 			return runFunc(cmd)
 		},
 	}
@@ -59,7 +59,7 @@ func main() {
 		Aliases: []string{"n"},
 		Short:   "Next version based on git history",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.NextCmd
+			opts.Action = svu.Next
 			return runFunc(cmd)
 		},
 	}
@@ -67,7 +67,7 @@ func main() {
 		Use:   "major",
 		Short: "New major release",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.MajorCmd
+			opts.Action = svu.Major
 			return runFunc(cmd)
 		},
 	}
@@ -76,7 +76,7 @@ func main() {
 		Short:   "New minor release",
 		Aliases: []string{"m"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.MinorCmd
+			opts.Action = svu.Minor
 			return runFunc(cmd)
 		},
 	}
@@ -85,7 +85,7 @@ func main() {
 		Short:   "New patch release",
 		Aliases: []string{"p"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.PatchCmd
+			opts.Action = svu.Patch
 			return runFunc(cmd)
 		},
 	}
@@ -94,7 +94,7 @@ func main() {
 		Short:   "Current version",
 		Aliases: []string{"c"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Cmd = svu.CurrentCmd
+			opts.Action = svu.Current
 			return runFunc(cmd)
 		},
 	}

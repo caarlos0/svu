@@ -11,13 +11,15 @@ import (
 	"github.com/caarlos0/svu/v2/internal/git"
 )
 
+type Action uint
+
 const (
-	NextCmd       = "next"
-	MajorCmd      = "major"
-	MinorCmd      = "minor"
-	PatchCmd      = "patch"
-	CurrentCmd    = "current"
-	PreReleaseCmd = "prerelease"
+	Next Action = iota
+	Major
+	Minor
+	Patch
+	Current
+	PreRelease
 )
 
 var (
@@ -28,7 +30,7 @@ var (
 )
 
 type Options struct {
-	Cmd         string
+	Action      Action
 	Pattern     string
 	Prefix      string
 	PreRelease  string
@@ -50,16 +52,7 @@ func Version(opts Options) (string, error) {
 		return "", fmt.Errorf("could not get current version from tag: '%s': %w", tag, err)
 	}
 
-	result, err := nextVersion(
-		string(opts.Cmd),
-		current,
-		tag,
-		opts.PreRelease,
-		opts.Metadata,
-		opts.Directories,
-		opts.KeepV0,
-		opts.Always,
-	)
+	result, err := nextVersion(current, tag, opts)
 	if err != nil {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
 	}
@@ -68,57 +61,49 @@ func Version(opts Options) (string, error) {
 }
 
 func nextVersion(
-	cmd string,
 	current *semver.Version,
-	tag, prerelease, metadata string,
-	directories []string,
-	keepV0, always bool,
+	tag string,
+	opts Options,
 ) (semver.Version, error) {
-	if cmd == CurrentCmd {
+	if opts.Action == Current {
 		return *current, nil
 	}
 
-	if always {
-		c, err := current.SetMetadata("")
-		if err != nil {
-			return c, err
-		}
-		c, err = c.SetPrerelease("")
-		if err != nil {
-			return c, err
-		}
+	if opts.Always {
+		c, _ := current.SetMetadata("")
+		c, _ = c.SetPrerelease("")
 		current = &c
 	}
 
 	var result semver.Version
 	var err error
-	switch cmd {
-	case NextCmd, PreReleaseCmd:
-		result, err = findNextWithGitLog(current, tag, directories, keepV0, always)
-	case MajorCmd:
+	switch opts.Action {
+	case Next, PreRelease:
+		result, err = findNextWithGitLog(current, tag, opts)
+	case Major:
 		result = current.IncMajor()
-	case MinorCmd:
+	case Minor:
 		result = current.IncMinor()
-	case PatchCmd:
+	case Patch:
 		result = current.IncPatch()
 	}
 	if err != nil {
 		return result, err
 	}
 
-	if cmd == PreReleaseCmd {
-		result, err = nextPreRelease(current, &result, prerelease)
+	if opts.Action == PreRelease {
+		result, err = nextPreRelease(current, &result, opts.PreRelease)
 		if err != nil {
 			return result, err
 		}
 	} else {
-		result, err = result.SetPrerelease(prerelease)
+		result, err = result.SetPrerelease(opts.PreRelease)
 		if err != nil {
 			return result, err
 		}
 	}
 
-	result, err = result.SetMetadata(metadata)
+	result, err = result.SetMetadata(opts.Metadata)
 	if err != nil {
 		return result, err
 	}
@@ -187,15 +172,14 @@ func getCurrentVersion(tag, prefix string) (*semver.Version, error) {
 func findNextWithGitLog(
 	current *semver.Version,
 	tag string,
-	directories []string,
-	preventMajorIncrementOnV0, forcePatchIncrement bool,
+	opts Options,
 ) (semver.Version, error) {
-	log, err := git.Changelog(tag, directories)
+	log, err := git.Changelog(tag, opts.Directories)
 	if err != nil {
 		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
 	}
 
-	return findNext(current, preventMajorIncrementOnV0, forcePatchIncrement, log), nil
+	return findNext(current, log, opts), nil
 }
 
 func isBreaking(commit git.Commit) bool {
@@ -210,7 +194,7 @@ func isPatch(commit git.Commit) bool {
 	return patch.MatchString(commit.Title)
 }
 
-func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncrement bool, changes []git.Commit) semver.Version {
+func findNext(current *semver.Version, changes []git.Commit, opts Options) semver.Version {
 	var major, minor, patch *git.Commit
 	for _, commit := range changes {
 		if isBreaking(commit) {
@@ -228,8 +212,8 @@ func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncr
 	}
 
 	if major != nil {
-		if current.Major() == 0 && preventMajorIncrementOnV0 {
-			_, _ = fmt.Fprintf(os.Stderr, "found major change, but prevent major increment is set: %s %s\n", major.SHA, major.Title)
+		if current.Major() == 0 && opts.KeepV0 {
+			_, _ = fmt.Fprintf(os.Stderr, "found major change, but 'keep v0' is set: %s %s\n", major.SHA, major.Title)
 			return current.IncMinor()
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "found major change: %s %s\n", major.SHA, major.Title)
@@ -246,8 +230,8 @@ func findNext(current *semver.Version, preventMajorIncrementOnV0, forcePatchIncr
 		return current.IncPatch()
 	}
 
-	if forcePatchIncrement {
-		_, _ = fmt.Fprintln(os.Stderr, "found no changes, but force patch increment is set")
+	if opts.Always {
+		_, _ = fmt.Fprintln(os.Stderr, "found no changes, but 'always' is set")
 		return current.IncPatch()
 	}
 	return *current
