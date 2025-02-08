@@ -4,8 +4,8 @@
 <a href="https://github.com/caarlos0/svu/releases/latest"><img src="https://img.shields.io/github/release/caarlos0/svu.svg?style=for-the-badge" alt="Release"></a>
 <a href="/LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge" alt="Software License"></a>
 <a href="https://github.com/caarlos0/svu/actions?workflow=build"><img src="https://img.shields.io/github/actions/workflow/status/caarlos0/svu/build.yml?style=for-the-badge&branch=main" alt="Build status"></a>
-<a href="http://godoc.org/github.com/caarlos0/svu/v2"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge" alt="Go Doc"></a>
-<a href="https://goreportcard.com/report/github.com/caarlos0/svu/v2"><img src="https://goreportcard.com/badge/github.com/caarlos0/svu/v2?style=for-the-badge" alt="GoReportCard"></a>
+<a href="http://godoc.org/github.com/caarlos0/svu/v3"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge" alt="Go Doc"></a>
+<a href="https://goreportcard.com/report/github.com/caarlos0/svu/v3"><img src="https://goreportcard.com/badge/github.com/caarlos0/svu/v3?style=for-the-badge" alt="GoReportCard"></a>
 <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=for-the-badge" alt="Conventional Commits"></a>
 </p>
 
@@ -110,7 +110,7 @@ docker run --rm -v $PWD:/tmp --workdir /tmp ghcr.io/caarlos0/svu --help
   <summary><code>go install</code></summary>
 
 ```bash
-go install github.com/caarlos0/svu/v2@latest
+go install github.com/caarlos0/svu/v3@latest
 ```
 
 </details>

@@ -2,8 +2,8 @@
 package svu
 
 import (
-	"github.com/caarlos0/svu/v2/internal/git"
-	"github.com/caarlos0/svu/v2/internal/svu"
+	"github.com/caarlos0/svu/v3/internal/git"
+	"github.com/caarlos0/svu/v3/internal/svu"
 )
 
 type option func(o *svu.Options)

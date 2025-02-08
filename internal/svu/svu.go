@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/caarlos0/svu/v2/internal/git"
+	"github.com/caarlos0/svu/v3/internal/git"
 )
 
 type Action uint

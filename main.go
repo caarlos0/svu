@@ -5,8 +5,8 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/caarlos0/svu/v2/internal/git"
-	"github.com/caarlos0/svu/v2/internal/svu"
+	"github.com/caarlos0/svu/v3/internal/git"
+	"github.com/caarlos0/svu/v3/internal/svu"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
