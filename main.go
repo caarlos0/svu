@@ -104,7 +104,7 @@ func main() {
 
 	root.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
-	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeCurrent, "determine if it should look for tags in all branches, or just the current one")
+	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
 
 	next.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
 	next.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
