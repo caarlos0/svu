@@ -1,4 +1,4 @@
-<h1 align="center">svu: semantic version util</h1>
+<h1 align="center">svu: semantic version utility</h1>
 
 <p align="center">
 <a href="https://github.com/caarlos0/svu/releases/latest"><img src="https://img.shields.io/github/release/caarlos0/svu.svg?style=for-the-badge" alt="Release"></a>
@@ -11,7 +11,7 @@
 
 <hr>
 
-semantic version util (svu) is a small helper for release scripts and workflows.
+semantic version utility (svu) is a small helper for release scripts and workflows.
 
 It provides utility commands and functions to increase specific portions of the version.
 It can also figure the next version out automatically by looking through the git history.
