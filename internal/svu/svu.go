@@ -2,7 +2,7 @@ package svu
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -213,25 +213,25 @@ func findNext(current *semver.Version, changes []git.Commit, opts Options) semve
 
 	if major != nil {
 		if current.Major() == 0 && opts.KeepV0 {
-			_, _ = fmt.Fprintf(os.Stderr, "found major change, but 'keep v0' is set: %s %s\n", major.SHA, major.Title)
+			log.Printf("found major change, but 'keep v0' is set: %s %s\n", major.SHA, major.Title)
 			return current.IncMinor()
 		}
-		_, _ = fmt.Fprintf(os.Stderr, "found major change: %s %s\n", major.SHA, major.Title)
+		log.Printf("found major change: %s %s\n", major.SHA, major.Title)
 		return current.IncMajor()
 	}
 
 	if minor != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "found minor change: %s %s\n", minor.SHA, minor.Title)
+		log.Printf("found minor change: %s %s\n", minor.SHA, minor.Title)
 		return current.IncMinor()
 	}
 
 	if patch != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "found patch change: %s %s\n", patch.SHA, patch.Title)
+		log.Printf("found patch change: %s %s\n", patch.SHA, patch.Title)
 		return current.IncPatch()
 	}
 
 	if opts.Always {
-		_, _ = fmt.Fprintln(os.Stderr, "found no changes, but 'always' is set")
+		log.Printf("found no changes, but 'always' is set")
 		return current.IncPatch()
 	}
 	return *current

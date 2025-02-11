@@ -3,6 +3,8 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"io"
+	"log"
 	"os"
 
 	goversion "github.com/caarlos0/go-version"
@@ -14,6 +16,7 @@ import (
 )
 
 func main() {
+	var verbose bool
 	var opts svu.Options
 
 	runFunc := func(cmd *cobra.Command) error {
@@ -41,6 +44,12 @@ func main() {
 					git.TagModeCurrent,
 					git.TagModeAll,
 				)
+			}
+
+			if verbose {
+				log.SetFlags(0)
+			} else {
+				log.SetOutput(io.Discard)
 			}
 			return nil
 		},
@@ -102,6 +111,7 @@ func main() {
 
 	root.SetVersionTemplate("{{.Version}}")
 
+	root.PersistentFlags().BoolVar(&verbose, "verbose", false, "enable logs")
 	root.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
 	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
