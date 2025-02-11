@@ -21,8 +21,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		cmd.Println(version)
-		return nil
+		_, err = fmt.Fprintln(cmd.OutOrStdout(), version)
+		return err
 	}
 
 	root := &cobra.Command{
