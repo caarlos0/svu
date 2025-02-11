@@ -2,6 +2,8 @@ name: goreleaser
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "*"
 
@@ -14,6 +16,8 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "flags=--snapshot" >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -40,10 +44,13 @@ jobs:
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: latest
-          args: release --clean
+          version: "~> v2"
+          args: release --clean ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           FURY_TOKEN: ${{ secrets.FURY_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}
+      - uses: actions/attest-build-provenance@v2
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          subject-checksums: ./dist/checksums.txt
