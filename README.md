@@ -1,4 +1,9 @@
-<h1 align="center">svu: semantic version utility</h1>
+<p align="center">
+  <img alt="svu Logo" src="https://becker.software/svu.png" height="300" />
+  <p align="center">semantic version utility</p>
+</p>
+
+<hr>
 
 <p align="center">
 <a href="https://github.com/caarlos0/svu/releases/latest"><img src="https://img.shields.io/github/release/caarlos0/svu.svg?style=for-the-badge" alt="Release"></a>
@@ -9,7 +14,6 @@
 <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=for-the-badge" alt="Conventional Commits"></a>
 </p>
 
-<hr>
 
 semantic version utility (svu) is a small helper for release scripts and workflows.
 
@@ -127,3 +131,7 @@ Or download one from the [releases tab](https://github.com/caarlos0/svu/releases
 [![Stargazers over time](https://starchart.cc/caarlos0/svu.svg?variant=adaptive)](https://starchart.cc/caarlos0/svu)
 
 [Semver]: https://semver.org
+
+---
+
+Logo art and concept by [@carinebecker](https://github.com/carinebecker).
