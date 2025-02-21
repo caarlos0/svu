@@ -4,12 +4,13 @@ version: 2
 
 variables:
   description: Semantic Version Utility
+  homepage: "https://github.com/caarlos0/svu"
 
 includes:
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/build.yml
   - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package.yml
+      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package_with_completions.yml
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/release.yml
   - from_url:
