@@ -118,27 +118,34 @@ func main() {
 	}
 
 	rootCmd.SetVersionTemplate("{{.Version}}")
-
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "enable logs")
-	rootCmd.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
-	rootCmd.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
-	rootCmd.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
-	rootCmd.PersistentFlags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
-
-	nextCmd.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
-	nextCmd.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
+	rootCmd.AddCommand(initCmd)
 	nextCmd.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
 	nextCmd.Flags().BoolVar(&opts.KeepV0, "v0", false, "prevent major version increments if current version is still v0")
 
-	rootCmd.AddCommand(
+	for _, cmd := range []*cobra.Command{
 		nextCmd,
 		majorCmd,
 		minorCmd,
 		patchCmd,
 		currentCmd,
 		prereleaseCmd,
-		initCmd,
-	)
+	} {
+		// init does not share these flags.
+		cmd.Flags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
+		cmd.Flags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
+		cmd.Flags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
+		cmd.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
+		cmd.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
+		rootCmd.AddCommand(cmd)
+	}
+
+	for _, cmd := range []*cobra.Command{
+		nextCmd,
+		prereleaseCmd,
+	} {
+		cmd.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
+	}
 
 	home, _ := os.UserHomeDir()
 	config, _ := os.UserConfigDir()
