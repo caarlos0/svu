@@ -30,8 +30,8 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:          "svu",
-		Short:        "semantic version util",
-		Long:         "semantic version util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
+		Short:        "semantic version utility",
+		Long:         "semantic version utility (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
 		Version:      buildVersion(version, commit, date, builtBy).String(),
 		SilenceUsage: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
@@ -197,7 +197,7 @@ var exampleConfig []byte
 
 func buildVersion(version, commit, date, builtBy string) goversion.Info {
 	return goversion.GetVersionInfo(
-		goversion.WithAppDetails("svu", "Semantic Version Util", "https://github.com/caarlos0/svu"),
+		goversion.WithAppDetails("svu", "Semantic Version Utility", "https://github.com/caarlos0/svu"),
 		goversion.WithASCIIName(asciiArt),
 		func(i *goversion.Info) {
 			if commit != "" {
