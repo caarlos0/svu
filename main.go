@@ -28,7 +28,7 @@ func main() {
 		return err
 	}
 
-	root := &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:          "svu",
 		Short:        "semantic version util",
 		Long:         "semantic version util (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
@@ -55,7 +55,7 @@ func main() {
 		},
 	}
 
-	prerelease := &cobra.Command{
+	prereleaseCmd := &cobra.Command{
 		Use:     "prerelease",
 		Aliases: []string{"pr"},
 		Short:   "Increases the build portion of the prerelease",
@@ -64,7 +64,7 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
-	next := &cobra.Command{
+	nextCmd := &cobra.Command{
 		Use:     "next",
 		Aliases: []string{"n"},
 		Short:   "Next version based on git history",
@@ -73,7 +73,7 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
-	major := &cobra.Command{
+	majorCmd := &cobra.Command{
 		Use:   "major",
 		Short: "New major release",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -81,7 +81,7 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
-	minor := &cobra.Command{
+	minorCmd := &cobra.Command{
 		Use:     "minor",
 		Short:   "New minor release",
 		Aliases: []string{"m"},
@@ -90,7 +90,7 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
-	patch := &cobra.Command{
+	patchCmd := &cobra.Command{
 		Use:     "patch",
 		Short:   "New patch release",
 		Aliases: []string{"p"},
@@ -99,7 +99,7 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
-	current := &cobra.Command{
+	currentCmd := &cobra.Command{
 		Use:     "current",
 		Short:   "Current version",
 		Aliases: []string{"c"},
@@ -108,27 +108,36 @@ func main() {
 			return runFunc(cmd)
 		},
 	}
+	initCmd := &cobra.Command{
+		Use:     "init",
+		Short:   "Creates a svu configuration file",
+		Aliases: []string{"i"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return os.WriteFile(".svu.yaml", exampleConfig, 0o644)
+		},
+	}
 
-	root.SetVersionTemplate("{{.Version}}")
+	rootCmd.SetVersionTemplate("{{.Version}}")
 
-	root.PersistentFlags().BoolVar(&verbose, "verbose", false, "enable logs")
-	root.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
-	root.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
-	root.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "enable logs")
+	rootCmd.PersistentFlags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
+	rootCmd.PersistentFlags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
+	rootCmd.PersistentFlags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
 
-	next.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
-	next.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
-	next.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
-	next.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
-	next.Flags().BoolVar(&opts.KeepV0, "v0", false, "prevent major version increments if current version is still v0")
+	nextCmd.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
+	nextCmd.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
+	nextCmd.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
+	nextCmd.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
+	nextCmd.Flags().BoolVar(&opts.KeepV0, "v0", false, "prevent major version increments if current version is still v0")
 
-	root.AddCommand(
-		next,
-		major,
-		minor,
-		patch,
-		current,
-		prerelease,
+	rootCmd.AddCommand(
+		nextCmd,
+		majorCmd,
+		minorCmd,
+		patchCmd,
+		currentCmd,
+		prereleaseCmd,
+		initCmd,
 	)
 
 	home, _ := os.UserHomeDir()
@@ -143,11 +152,11 @@ func main() {
 	viper.SetConfigType("yaml")
 	cobra.OnInitialize(func() {
 		if viper.ReadInConfig() == nil {
-			presetRequiredFlags(root)
+			presetRequiredFlags(rootCmd)
 		}
 	})
 
-	if err := root.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
@@ -175,6 +184,9 @@ var (
 
 //go:embed art.txt
 var asciiArt string
+
+//go:embed example.svu.yaml
+var exampleConfig []byte
 
 func buildVersion(version, commit, date, builtBy string) goversion.Info {
 	return goversion.GetVersionInfo(
