@@ -132,7 +132,7 @@ func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Ve
 		suffix = current.Prerelease()
 	} else {
 		return *current, fmt.Errorf(
-			"--pre-release suffix is required to calculate next pre-release version as suffix could not be determined from current version: %s",
+			"--prerelease suffix is required to calculate next pre-release version as suffix could not be determined from current version: %s",
 			current.String(),
 		)
 	}
