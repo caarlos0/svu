@@ -10,7 +10,7 @@ includes:
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/build.yml
   - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package_with_completions.yml
+      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package_with_completions_no_aur.yml
   - from_url:
       url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/release.yml
   - from_url:
@@ -22,3 +22,26 @@ includes:
 
 furies:
   - account: caarlos0
+
+aurs:
+  - maintainers:
+      - "Carlos Alexandro Becker <carlos at becker dot software>"
+      - "Rafael Dominiquini <rafaeldominiquini at gmail dor com>"
+    description: "{{ .Var.description }}"
+    name: "svu-bin"
+    homepage: "{{ .Var.homepage }}"
+    license: MIT
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/svu-bin.git"
+    package: |-
+      # bin
+      install -Dm755 "./svu" "${pkgdir}/usr/bin/svu"
+      # license
+      install -Dm644 "./LICENSE.md" "${pkgdir}/usr/share/licenses/svu/LICENSE"
+      # completions
+      mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
+      mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
+      mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
+      install -Dm644 "./completions/svu.bash" "${pkgdir}/usr/share/bash-completion/completions/svu
+      install -Dm644 "./completions/svu.zsh" "${pkgdir}/usr/share/zsh/site-functions/_svu"
+      install -Dm644 "./completions/svu.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/svu.ProjectName }}.fish"
