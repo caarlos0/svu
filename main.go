@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	goversion "github.com/caarlos0/go-version"
 	"github.com/caarlos0/svu/v3/internal/git"
@@ -14,6 +15,12 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+//go:embed description.txt
+var description []byte
+
+//go:embed examples.sh
+var examples []byte
 
 func main() {
 	var verbose bool
@@ -30,9 +37,10 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:          "svu",
-		Short:        "semantic version utility",
-		Long:         "semantic version utility (svu) is a small helper for release scripts and workflows.\nIt provides utility commands to increase specific portions of the version.\nIt can also figure the next version out automatically by looking through the git history.",
+		Short:        "Semantic Version Utility",
+		Long:         string(description),
 		Version:      buildVersion(version, commit, date, builtBy).String(),
+		Example:      paddingLeft(string(examples)),
 		SilenceUsage: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			switch opts.TagMode {
@@ -217,4 +225,12 @@ func buildVersion(version, commit, date, builtBy string) goversion.Info {
 			}
 		},
 	)
+}
+
+func paddingLeft(in string) string {
+	var out []string
+	for _, line := range strings.Split(in, "\n") {
+		out = append(out, "  "+line)
+	}
+	return strings.Join(out, "\n")
 }

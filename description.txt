@@ -1,0 +1,6 @@
+Semantic Version Utility (svu) is a small helper that can be used in release
+scripts and workflows.
+
+It provides utility commands to increase specific portions of the version,
+and can also figure the next version out automatically by looking through the
+git history.
