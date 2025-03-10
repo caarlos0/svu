@@ -23,6 +23,15 @@ includes:
 furies:
   - account: caarlos0
 
+archives:
+  - files:
+      - README.md
+      - LICENSE.md
+      - completions/*
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
 aurs:
   - maintainers:
       - "Carlos Alexandro Becker <carlos at becker dot software>"
