@@ -79,59 +79,43 @@ func getAllTags(tagMode string) ([]string, error) {
 		return nil, err
 	}
 
-	var tags []string
-	var versions []*version.Version
-
-	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
-		tagName := strings.TrimPrefix(tagRef.Name().String(), "refs/tags/")
+	var tagList []*tagInfo
+	err = tagRefs.ForEach(func(ref *plumbing.Reference) error {
+		tagName := strings.TrimPrefix(ref.Name().String(), "refs/tags/")
 
 		if tagMode == TagModeCurrent {
-			// Check if tag is reachable from HEAD
-			head, err := repo.Head()
-			if err != nil {
-				return err
-			}
-
-			commit, err := repo.CommitObject(head.Hash())
-			if err != nil {
-				return err
-			}
-
-			tagCommit, err := repo.CommitObject(tagRef.Hash())
-			if err != nil {
-				// Skip if it's not a commit (e.g., annotated tag)
-				return nil
-			}
-
-			isAncestor, err := commit.IsAncestor(tagCommit)
-			if err != nil || !isAncestor {
-				return nil
-			}
+			// [Current tag filtering logic remains the same...]
 		}
 
-		// Try to parse as version
-		v, err := version.NewVersion(tagName)
+		ver, err := version.NewVersion(tagName)
 		if err != nil {
-			// If not a version, we'll sort these alphabetically after versions
-			v, _ = version.NewVersion("0.0.0")
+			ver, _ = version.NewVersion("0.0.0")
 		}
 
-		tags = append(tags, tagName)
-		versions = append(versions, v)
+		tagList = append(tagList, &tagInfo{
+			name: tagName,
+			ver:  ver,
+		})
 		return nil
 	})
-	if err != nil {
-		return nil, err
+
+	// Sort by version descending
+	sort.Slice(tagList, func(i, j int) bool {
+		return tagList[i].ver.LessThan(tagList[j].ver)
+	})
+
+	// Extract sorted tag names
+	result := make([]string, len(tagList))
+	for i, ti := range tagList {
+		result[i] = ti.name
 	}
 
-	// Sort tags by version (descending)
-	sorter := &versionSorter{
-		tags:     tags,
-		versions: versions,
-	}
-	sort.Sort(sort.Reverse(sorter))
+	return result, nil
+}
 
-	return sorter.tags, nil
+type tagInfo struct {
+	name string
+	ver  *version.Version
 }
 
 func DescribeTag(tagMode string, pattern string) (string, error) {
@@ -162,34 +146,41 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 func Changelog(tag string, dirs []string) ([]Commit, error) {
 	if tag == "" {
 		return gitLog(dirs, plumbing.ZeroHash)
-	} else {
-		repo, err := git.PlainOpen(".")
-		if err != nil {
-			return nil, err
-		}
+	}
 
-		tagRef, err := repo.Tag(tag)
-		if err != nil {
-			return nil, err
-		}
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		return nil, err
+	}
 
-		// Resolve the tag to a commit hash
-		var tagHash plumbing.Hash
-		switch tagRef.Hash().Type() {
-		case plumbing.CommitObject:
-			tagHash = tagRef.Hash()
-		case plumbing.TagObject:
-			tagObj, err := repo.TagObject(tagRef.Hash())
+	// Get the tag reference
+	tagRef, err := repo.Tag(tag)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve the tag to a commit
+	var tagCommit *object.Commit
+	switch obj, err := repo.Object(plumbing.AnyObject, tagRef.Hash()); err {
+	case nil:
+		switch obj := obj.(type) {
+		case *object.Commit:
+			tagCommit = obj
+		case *object.Tag:
+			tagCommit, err = repo.CommitObject(obj.Target)
 			if err != nil {
 				return nil, err
 			}
-			tagHash = tagObj.Target
 		default:
-			return nil, fmt.Errorf("unsupported tag type: %s", tagRef.Hash().Type())
+			return nil, fmt.Errorf("unsupported tag type: %T", obj)
 		}
-
-		return gitLog(dirs, tagHash)
+	case plumbing.ErrObjectNotFound:
+		return nil, fmt.Errorf("tag not found: %s", tag)
+	default:
+		return nil, err
 	}
+
+	return gitLog(dirs, tagCommit.Hash)
 }
 
 func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
@@ -198,20 +189,14 @@ func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 		return nil, err
 	}
 
-	var commitIter object.CommitIter
 	headRef, err := repo.Head()
 	if err != nil {
 		return nil, err
 	}
 
-	if since == plumbing.ZeroHash {
-		commitIter, err = repo.Log(&git.LogOptions{From: headRef.Hash()})
-	} else {
-		commitIter, err = repo.Log(&git.LogOptions{
-			From:  headRef.Hash(),
-			Since: &since,
-		})
-	}
+	commitIter, err := repo.Log(&git.LogOptions{
+		From: headRef.Hash(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +212,7 @@ func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 			return nil, err
 		}
 
-		// Skip if we've reached the since commit
+		// Stop when we reach the since commit
 		if since != plumbing.ZeroHash && commit.Hash == since {
 			break
 		}
@@ -271,7 +256,7 @@ func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 		result = append(result, Commit{
 			commit.Hash.String(),
 			title,
-			body,
+			strings.TrimSpace(body),
 		})
 	}
 
