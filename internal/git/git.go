@@ -13,8 +13,20 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// Commit is a commit with a hash, title (first line of the message), and body
-// (rest of the message, not including the title).
+type Repository interface {
+	PlainOpen(path string) (*git.Repository, error)
+}
+
+type Git struct {
+	open func(path string) (*git.Repository, error)
+}
+
+func New() *Git {
+	return &Git{
+		open: git.PlainOpen,
+	}
+}
+
 type Commit struct {
 	SHA   string
 	Title string
@@ -30,24 +42,23 @@ const (
 	TagModeCurrent = "current"
 )
 
-// IsRepo returns true if current folder is a git repository
-func IsRepo() bool {
-	_, err := git.PlainOpen(".")
+func (g *Git) IsRepo() bool {
+	_, err := g.open(".")
 	return err == nil
 }
 
-func Root() string {
-	repo, err := git.PlainOpen(".")
+func (g *Git) Root() (string, error) {
+	repo, err := g.open(".")
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	wt, err := repo.Worktree()
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return wt.Filesystem.Root()
+	return wt.Filesystem.Root(), nil
 }
 
 type versionSorter struct {
@@ -55,21 +66,12 @@ type versionSorter struct {
 	versions []*version.Version
 }
 
-func (v *versionSorter) Len() int {
-	return len(v.tags)
-}
+func (v *versionSorter) Len() int           { return len(v.tags) }
+func (v *versionSorter) Swap(i, j int)      { v.tags[i], v.tags[j] = v.tags[j], v.tags[i] }
+func (v *versionSorter) Less(i, j int) bool { return v.versions[i].LessThan(v.versions[j]) }
 
-func (v *versionSorter) Swap(i, j int) {
-	v.tags[i], v.tags[j] = v.tags[j], v.tags[i]
-	v.versions[i], v.versions[j] = v.versions[j], v.versions[i]
-}
-
-func (v *versionSorter) Less(i, j int) bool {
-	return v.versions[i].LessThan(v.versions[j])
-}
-
-func getAllTags(tagMode string) ([]string, error) {
-	repo, err := git.PlainOpen(".")
+func (g *Git) getAllTags(tagMode string) ([]string, error) {
+	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +81,31 @@ func getAllTags(tagMode string) ([]string, error) {
 		return nil, err
 	}
 
-	var tagList []*tagInfo
-	err = tagRefs.ForEach(func(ref *plumbing.Reference) error {
-		tagName := strings.TrimPrefix(ref.Name().String(), "refs/tags/")
+	var tagList []*versionSorter
+
+	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
+		tagName := strings.TrimPrefix(tagRef.Name().String(), "refs/tags/")
 
 		if tagMode == TagModeCurrent {
-			// [Current tag filtering logic remains the same...]
+			head, err := repo.Head()
+			if err != nil {
+				return err
+			}
+
+			commit, err := repo.CommitObject(head.Hash())
+			if err != nil {
+				return err
+			}
+
+			tagCommit, err := repo.CommitObject(tagRef.Hash())
+			if err != nil {
+				return nil
+			}
+
+			isAncestor, err := commit.IsAncestor(tagCommit)
+			if err != nil || !isAncestor {
+				return nil
+			}
 		}
 
 		ver, err := version.NewVersion(tagName)
@@ -92,34 +113,43 @@ func getAllTags(tagMode string) ([]string, error) {
 			ver, _ = version.NewVersion("0.0.0")
 		}
 
-		tagList = append(tagList, &tagInfo{
-			name: tagName,
-			ver:  ver,
+		tagList = append(tagList, &versionSorter{
+			tags:     []string{tagName},
+			versions: []*version.Version{ver},
 		})
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	// Sort by version descending
-	sort.Slice(tagList, func(i, j int) bool {
-		return tagList[i].ver.LessThan(tagList[j].ver)
-	})
+	sort.Sort(sort.Reverse(&versionSorter{
+		tags: func() []string {
+			s := make([]string, len(tagList))
+			for i, v := range tagList {
+				s[i] = v.tags[0]
+			}
+			return s
+		}(),
+		versions: func() []*version.Version {
+			s := make([]*version.Version, len(tagList))
+			for i, v := range tagList {
+				s[i] = v.versions[0]
+			}
+			return s
+		}(),
+	}))
 
-	// Extract sorted tag names
 	result := make([]string, len(tagList))
 	for i, ti := range tagList {
-		result[i] = ti.name
+		result[i] = ti.tags[0]
 	}
 
 	return result, nil
 }
 
-type tagInfo struct {
-	name string
-	ver  *version.Version
-}
-
-func DescribeTag(tagMode string, pattern string) (string, error) {
-	tags, err := getAllTags(tagMode)
+func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
+	tags, err := g.getAllTags(tagMode)
 	if err != nil {
 		return "", err
 	}
@@ -143,23 +173,21 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dirs []string) ([]Commit, error) {
+func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 	if tag == "" {
-		return gitLog(dirs, plumbing.ZeroHash)
+		return g.gitLog(dirs, plumbing.ZeroHash)
 	}
 
-	repo, err := git.PlainOpen(".")
+	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the tag reference
 	tagRef, err := repo.Tag(tag)
 	if err != nil {
 		return nil, err
 	}
 
-	// Resolve the tag to a commit
 	var tagCommit *object.Commit
 	switch obj, err := repo.Object(plumbing.AnyObject, tagRef.Hash()); err {
 	case nil:
@@ -180,11 +208,11 @@ func Changelog(tag string, dirs []string) ([]Commit, error) {
 		return nil, err
 	}
 
-	return gitLog(dirs, tagCommit.Hash)
+	return g.gitLog(dirs, tagCommit.Hash)
 }
 
-func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
-	repo, err := git.PlainOpen(".")
+func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
+	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
 	}
@@ -212,12 +240,10 @@ func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 			return nil, err
 		}
 
-		// Stop when we reach the since commit
 		if since != plumbing.ZeroHash && commit.Hash == since {
 			break
 		}
 
-		// Filter by directories if specified
 		if len(dirs) > 0 {
 			files, err := commit.Files()
 			if err != nil {
@@ -229,7 +255,7 @@ func gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 				for _, dir := range dirs {
 					if strings.HasPrefix(file.Name, dir) {
 						found = true
-						return io.EOF // break early
+						return io.EOF
 					}
 				}
 				return nil
