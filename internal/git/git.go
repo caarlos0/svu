@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -12,10 +13,6 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/hashicorp/go-version"
 )
-
-type Repository interface {
-	PlainOpen(path string) (*git.Repository, error)
-}
 
 type Git struct {
 	open func(path string) (*git.Repository, error)
@@ -42,15 +39,18 @@ const (
 	TagModeCurrent = "current"
 )
 
-func (g *Git) IsRepo() bool {
+func (g *Git) IsRepo() (bool, error) {
 	_, err := g.open(".")
-	return err == nil
+	if err != nil {
+		return false, fmt.Errorf("not a git repository: %w", err)
+	}
+	return true, nil
 }
 
 func (g *Git) Root() (string, error) {
 	repo, err := g.open(".")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to retrieve repository root: %w", err)
 	}
 
 	wt, err := repo.Worktree()
@@ -99,7 +99,7 @@ func (g *Git) getAllTags(tagMode string) ([]string, error) {
 
 			tagCommit, err := repo.CommitObject(tagRef.Hash())
 			if err != nil {
-				return nil
+				return err
 			}
 
 			isAncestor, err := commit.IsAncestor(tagCommit)
@@ -110,7 +110,8 @@ func (g *Git) getAllTags(tagMode string) ([]string, error) {
 
 		ver, err := version.NewVersion(tagName)
 		if err != nil {
-			ver, _ = version.NewVersion("0.0.0")
+			fmt.Printf("Skipping invalid tag: %s\n", tagName)
+			return nil // Skip invalid tags
 		}
 
 		tagList = append(tagList, &versionSorter{
@@ -161,16 +162,16 @@ func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
 		return tags[0], nil
 	}
 
-	g, err := glob.Compile(pattern)
+	matcher, err := glob.Compile(pattern)
 	if err != nil {
 		return "", err
 	}
 	for _, tag := range tags {
-		if g.Match(tag) {
+		if matcher.Match(tag) {
 			return tag, nil
 		}
 	}
-	return "", fmt.Errorf("no tags match '%s'", pattern)
+	return "", fmt.Errorf("no tags match '%s', available tags: %v", pattern, tags)
 }
 
 func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
@@ -185,7 +186,7 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 
 	tagRef, err := repo.Tag(tag)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find tag '%s': %w", tag, err)
 	}
 
 	var tagCommit *object.Commit
@@ -214,19 +215,19 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 	repo, err := g.open(".")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 
 	headRef, err := repo.Head()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get repository head: %w", err)
 	}
 
 	commitIter, err := repo.Log(&git.LogOptions{
 		From: headRef.Hash(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve commit log: %w", err)
 	}
 	defer commitIter.Close()
 
@@ -237,7 +238,7 @@ func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error iterating through commits: %w", err)
 		}
 
 		if since != plumbing.ZeroHash && commit.Hash == since {
@@ -247,43 +248,29 @@ func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 		if len(dirs) > 0 {
 			files, err := commit.Files()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to retrieve files for commit %s: %w", commit.Hash.String(), err)
 			}
 
-			var found bool
+			var matchFound = errors.New("match found")
 			err = files.ForEach(func(file *object.File) error {
 				for _, dir := range dirs {
 					if strings.HasPrefix(file.Name, dir) {
-						found = true
-						return io.EOF
+						return matchFound
 					}
 				}
 				return nil
 			})
-			if err != nil && err != io.EOF {
-				return nil, err
+			if err != nil && err != matchFound {
+				return nil, fmt.Errorf("error iterating through files: %w", err)
 			}
-			if !found {
-				continue
+			if err == matchFound {
+				result = append(result, Commit{
+					SHA:   commit.Hash.String(),
+					Title: commit.Message,
+					Body:  strings.TrimSpace(commit.Message),
+				})
 			}
 		}
-
-		message := commit.Message
-		titleEndIdx := strings.Index(message, "\n")
-		var title, body string
-		if titleEndIdx < 0 {
-			title = message
-			body = ""
-		} else {
-			title = message[:titleEndIdx]
-			body = message[titleEndIdx+1:]
-		}
-
-		result = append(result, Commit{
-			commit.Hash.String(),
-			title,
-			strings.TrimSpace(body),
-		})
 	}
 
 	return result, nil
