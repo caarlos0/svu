@@ -41,7 +41,7 @@ func TestVersion(t *testing.T) {
 
 	t.Run("valid version", func(t *testing.T) {
 		mockGit.On("DescribeTag", git.TagModeAll, "").Return("v1.2.3", nil)
-		mockGit.On("Changelog", "v1.2.3", []string{}).Return([]git.Commit{
+		mockGit.On("Changelog", "v1.2.3", []string(nil)).Return([]git.Commit{
 			{Title: "feat: add new feature"},
 			{Title: "fix: fix a bug"},
 		}, nil)
@@ -59,7 +59,7 @@ func TestVersion(t *testing.T) {
 
 	t.Run("no commits", func(t *testing.T) {
 		mockGit.On("DescribeTag", git.TagModeAll, "").Return("v1.2.3", nil)
-		mockGit.On("Changelog", "v1.2.3", []string{}).Return([]git.Commit{}, nil)
+		mockGit.On("Changelog", "v1.2.3", []string(nil)).Return([]git.Commit{}, nil)
 
 		opts := Options{
 			Action:  Next,
@@ -70,7 +70,7 @@ func TestVersion(t *testing.T) {
 
 		version, err := VersionWithMock(opts, mockGit)
 		require.NoError(t, err)
-		require.Equal(t, "v1.2.4", version)
+		require.Equal(t, "v1.2.4", version) // Ensure Always is respected
 	})
 
 	t.Run("no tags", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestVersion(t *testing.T) {
 
 		version, err := VersionWithMock(opts, mockGit)
 		require.NoError(t, err)
-		require.Equal(t, "v0.1.0", version)
+		require.Equal(t, "v0.1.0", version) // Ensure no tags defaults to v0.1.0
 	})
 
 	t.Run("error from DescribeTag", func(t *testing.T) {
@@ -240,6 +240,9 @@ func TestCmd(t *testing.T) {
 	mockGit := new(MockGit)
 
 	t.Run("patch with metadata", func(t *testing.T) {
+		mockGit.On("DescribeTag", git.TagModeAll, "").Return("v1.2.3", nil)
+		mockGit.On("Changelog", "v1.2.3", []string(nil)).Return([]git.Commit{}, nil)
+
 		v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
 			Action:   Patch,
 			Metadata: "124",
