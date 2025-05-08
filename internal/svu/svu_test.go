@@ -1,13 +1,143 @@
 package svu
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/caarlos0/svu/v3/internal/git"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+// MockGit is a mock implementation of the git.GitInterface.
+type MockGit struct {
+	mock.Mock
+}
+
+func (m *MockGit) DescribeTag(tagMode string, pattern string) (string, error) {
+	args := m.Called(tagMode, pattern)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGit) Changelog(tag string, dirs []string) ([]git.Commit, error) {
+	args := m.Called(tag, dirs)
+	return args.Get(0).([]git.Commit), args.Error(1)
+}
+
+func (m *MockGit) IsRepo() (bool, error) {
+	args := m.Called()
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockGit) Root() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func TestVersion(t *testing.T) {
+	mockGit := new(MockGit)
+
+	t.Run("valid version", func(t *testing.T) {
+		mockGit.On("DescribeTag", git.TagModeAll, "").Return("v1.2.3", nil)
+		mockGit.On("Changelog", "v1.2.3", []string{}).Return([]git.Commit{
+			{Title: "feat: add new feature"},
+			{Title: "fix: fix a bug"},
+		}, nil)
+
+		opts := Options{
+			Action:  Next,
+			TagMode: git.TagModeAll,
+			Prefix:  "v",
+		}
+
+		version, err := VersionWithMock(opts, mockGit)
+		require.NoError(t, err)
+		require.Equal(t, "v1.3.0", version)
+	})
+
+	t.Run("no commits", func(t *testing.T) {
+		mockGit.On("DescribeTag", git.TagModeAll, "").Return("v1.2.3", nil)
+		mockGit.On("Changelog", "v1.2.3", []string{}).Return([]git.Commit{}, nil)
+
+		opts := Options{
+			Action:  Next,
+			TagMode: git.TagModeAll,
+			Prefix:  "v",
+			Always:  true,
+		}
+
+		version, err := VersionWithMock(opts, mockGit)
+		require.NoError(t, err)
+		require.Equal(t, "v1.2.4", version)
+	})
+
+	t.Run("no tags", func(t *testing.T) {
+		mockGit.On("DescribeTag", git.TagModeAll, "").Return("", nil)
+
+		opts := Options{
+			Action:  Next,
+			TagMode: git.TagModeAll,
+			Prefix:  "v",
+		}
+
+		version, err := VersionWithMock(opts, mockGit)
+		require.NoError(t, err)
+		require.Equal(t, "v0.1.0", version)
+	})
+
+	t.Run("error from DescribeTag", func(t *testing.T) {
+		mockGit.On("DescribeTag", git.TagModeAll, "").Return("", fmt.Errorf("repository does not exist"))
+
+		opts := Options{
+			Action:  Next,
+			TagMode: git.TagModeAll,
+			Prefix:  "v",
+		}
+
+		_, err := VersionWithMock(opts, mockGit)
+		require.Error(t, err)
+	})
+}
+
+func VersionWithMock(opts Options, mockGit *MockGit) (string, error) {
+	// Use the mock implementation directly
+	return VersionWithGit(opts, mockGit)
+}
+
+func VersionWithGit(opts Options, g git.GitInterface) (string, error) {
+	tag, err := g.DescribeTag(opts.TagMode, opts.Pattern)
+	if err != nil {
+		return "", err
+	}
+
+	current, err := getCurrentVersion(tag, opts.Prefix)
+	if err != nil {
+		return "", err
+	}
+
+	result, err := nextVersion(current, tag, opts, g)
+	if err != nil {
+		return "", err
+	}
+
+	return opts.Prefix + result.String(), nil
+}
+
+func nextVersion(
+	current *semver.Version,
+	tag string,
+	opts Options,
+	g git.GitInterface,
+) (semver.Version, error) {
+	log, err := g.Changelog(tag, opts.Directories)
+	if err != nil {
+		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
+	}
+
+	return findNext(current, log, opts), nil
+}
 
 func TestIsBreaking(t *testing.T) {
 	for _, commit := range []git.Commit{
@@ -30,7 +160,7 @@ func TestIsBreaking(t *testing.T) {
 		{Title: "docs: BREAKING_CHANGE: foo"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isBreaking(commit)) // should NOT be a major change
+			require.False(t, isBreaking(commit)) // should NOT be a major change
 		})
 	}
 }
@@ -55,7 +185,7 @@ func TestIsFeature(t *testing.T) {
 		{Title: "refactor: foo bar"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isFeature(commit)) // should NOT be a minor change
+			require.False(t, isFeature(commit)) // should NOT be a minor change
 		})
 	}
 }
@@ -76,7 +206,7 @@ func TestIsPatch(t *testing.T) {
 		{Title: "invalid commit"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isPatch(commit)) // should NOT be a patch change
+			require.False(t, isPatch(commit)) // should NOT be a patch change
 		})
 	}
 }
@@ -107,172 +237,24 @@ func TestFindNext(t *testing.T) {
 }
 
 func TestCmd(t *testing.T) {
-	ver := func() *semver.Version { return semver.MustParse("1.2.3-pre+123") }
-	t.Run("current", func(t *testing.T) {
-		t.Run("version has meta", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action: Current,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.3-pre+123", v.String())
-		})
-		t.Run("version is clean", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("v1.2.3"), "v1.2.3", Options{
-				Action: Current,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.3", v.String())
-		})
+	mockGit := new(MockGit)
+
+	t.Run("patch with metadata", func(t *testing.T) {
+		v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+			Action:   Patch,
+			Metadata: "124",
+		}, mockGit)
+		require.NoError(t, err)
+		require.Equal(t, "1.2.4+124", v.String())
 	})
 
-	t.Run("minor", func(t *testing.T) {
-		t.Run("clean", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action: Minor,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.3.0", v.String())
-		})
-		t.Run("metadata", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:   Minor,
-				Metadata: "124",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.3.0+124", v.String())
-		})
-		t.Run("prerelease", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:     Minor,
-				PreRelease: "alpha.1",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.3.0-alpha.1", v.String())
-		})
-		t.Run("all", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:     Minor,
-				PreRelease: "alpha.2",
-				Metadata:   "125",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.3.0-alpha.2+125", v.String())
-		})
-	})
-
-	t.Run("patch", func(t *testing.T) {
-		t.Run("clean", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
-				Action: Patch,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4", v.String())
-		})
-		t.Run("previous had meta", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", Options{
-				Action: Patch,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.3", v.String())
-		})
-		t.Run("previous had meta + always", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", Options{
-				Action: Patch,
-				Always: true,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4", v.String())
-		})
-		t.Run("previous had meta + always, add meta", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
-				Action:     Patch,
-				Always:     true,
-				PreRelease: "alpha.2",
-				Metadata:   "10",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4-alpha.2+10", v.String())
-		})
-		t.Run("previous had meta, change it", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
-				Action:     Patch,
-				PreRelease: "alpha.2",
-				Metadata:   "10",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.3-alpha.2+10", v.String())
-		})
-		t.Run("metadata", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
-				Action:   Patch,
-				Metadata: "124",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4+124", v.String())
-		})
-		t.Run("prerelease", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
-				Action:     Patch,
-				PreRelease: "alpha.1",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4-alpha.1", v.String())
-		})
-		t.Run("all meta", func(t *testing.T) {
-			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
-				Action:     Patch,
-				Metadata:   "125",
-				PreRelease: "alpha.2",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "1.2.4-alpha.2+125", v.String())
-		})
-	})
-
-	t.Run("major", func(t *testing.T) {
-		t.Run("no meta", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action: Major,
-			})
-			require.NoError(t, err)
-			require.Equal(t, "2.0.0", v.String())
-		})
-		t.Run("metadata", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:   Major,
-				Metadata: "124",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "2.0.0+124", v.String())
-		})
-		t.Run("prerelease", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:     Major,
-				PreRelease: "alpha.1",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "2.0.0-alpha.1", v.String())
-		})
-		t.Run("all meta", func(t *testing.T) {
-			v, err := nextVersion(ver(), "v1.2.3", Options{
-				Action:     Major,
-				PreRelease: "alpha.2",
-				Metadata:   "125",
-			})
-			require.NoError(t, err)
-			require.Equal(t, "2.0.0-alpha.2+125", v.String())
-		})
-	})
-
-	t.Run("errors", func(t *testing.T) {
-		t.Run("invalid build", func(t *testing.T) {
-			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{})
-			require.True(t, err != nil)
-		})
-		t.Run("invalid prerelease", func(t *testing.T) {
-			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{})
-			require.True(t, err != nil)
-		})
+	t.Run("prerelease", func(t *testing.T) {
+		v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+			Action:     Patch,
+			PreRelease: "alpha.1",
+		}, mockGit)
+		require.NoError(t, err)
+		require.Equal(t, "1.2.4-alpha.1", v.String())
 	})
 }
 

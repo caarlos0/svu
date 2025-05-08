@@ -13,6 +13,15 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
+// GitInterface defines the methods that Git must implement.
+type GitInterface interface {
+	DescribeTag(tagMode string, pattern string) (string, error)
+	Changelog(tag string, dirs []string) ([]Commit, error)
+	IsRepo() (bool, error)
+	Root() (string, error)
+}
+
+// Git is the implementation of GitInterface.
 type Git struct {
 	open func(path string) (*git.Repository, error)
 }
@@ -124,7 +133,7 @@ func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
 
 	matcher, err := glob.Compile(pattern)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to compile pattern: %w", err)
 	}
 	for _, tag := range tags {
 		if matcher.Match(tag) {
@@ -141,7 +150,7 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 
 	repo, err := g.open(".")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 
 	tagRef, err := repo.Tag(tag)
@@ -158,7 +167,7 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 		case *object.Tag:
 			tagCommit, err = repo.CommitObject(obj.Target)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to resolve tag target: %w", err)
 			}
 		default:
 			return nil, fmt.Errorf("unsupported tag type: %T", obj)
@@ -166,7 +175,7 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 	case plumbing.ErrObjectNotFound:
 		return nil, fmt.Errorf("tag not found: %s", tag)
 	default:
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve tag object: %w", err)
 	}
 
 	return g.gitLog(dirs, tagCommit.Hash)

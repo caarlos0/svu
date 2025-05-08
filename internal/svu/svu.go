@@ -42,7 +42,11 @@ type Options struct {
 }
 
 func Version(opts Options) (string, error) {
-	tag, err := git.DescribeTag(string(opts.TagMode), opts.Pattern)
+	// Create a new Git instance
+	g := git.New()
+
+	// Use the Git instance to call DescribeTag
+	tag, err := g.DescribeTag(opts.TagMode, opts.Pattern)
 	if err != nil {
 		return "", fmt.Errorf("failed to get current tag for repo: %w", err)
 	}
@@ -52,7 +56,7 @@ func Version(opts Options) (string, error) {
 		return "", fmt.Errorf("could not get current version from tag: '%s': %w", tag, err)
 	}
 
-	result, err := nextVersion(current, tag, opts)
+	result, err := NextVersion(current, tag, opts, g)
 	if err != nil {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
 	}
@@ -60,10 +64,11 @@ func Version(opts Options) (string, error) {
 	return opts.Prefix + result.String(), nil
 }
 
-func nextVersion(
+func NextVersion(
 	current *semver.Version,
 	tag string,
 	opts Options,
+	g *git.Git, // Pass the Git instance to use for changelog
 ) (semver.Version, error) {
 	if opts.Action == Current {
 		return *current, nil
@@ -79,7 +84,7 @@ func nextVersion(
 	var err error
 	switch opts.Action {
 	case Next, PreRelease:
-		result, err = findNextWithGitLog(current, tag, opts)
+		result, err = findNextWithGitLog(current, tag, opts, g)
 	case Major:
 		result = current.IncMajor()
 	case Minor:
@@ -173,8 +178,9 @@ func findNextWithGitLog(
 	current *semver.Version,
 	tag string,
 	opts Options,
+	g *git.Git, // Pass the Git instance to use for changelog
 ) (semver.Version, error) {
-	log, err := git.Changelog(tag, opts.Directories)
+	log, err := g.Changelog(tag, opts.Directories)
 	if err != nil {
 		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
 	}

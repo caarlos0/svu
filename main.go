@@ -160,7 +160,11 @@ func main() {
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("svu")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath(git.Root())
+	if root, err := git.New().Root(); err == nil {
+		viper.AddConfigPath(root)
+	} else {
+		log.Printf("warning: could not determine git root: %v", err)
+	}
 	viper.AddConfigPath(config)
 	viper.AddConfigPath(home)
 	viper.SetConfigName(".svu")
