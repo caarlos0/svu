@@ -223,3 +223,22 @@ func TestEdgeCases(t *testing.T) {
 		assert.Empty(t, tags)
 	})
 }
+
+func TestDescribeTag_NoTagsFound(t *testing.T) {
+	mockOpen := func(path string) (*git.Repository, error) {
+		// Return a mock repository or simulate an empty repository
+		return nil, plumbing.ErrObjectNotFound
+	}
+
+	g := &Git{}
+	g.SetOpenFunc(mockOpen)
+
+	tag, err := g.DescribeTag("", "")
+	if err == nil || err.Error() != "no tags found in the repository" {
+		t.Fatalf("expected error 'no tags found in the repository', got: %v", err)
+	}
+
+	if tag != "" {
+		t.Fatalf("expected no tag, got: %s", tag)
+	}
+}

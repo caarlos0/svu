@@ -47,6 +47,11 @@ const (
 	TagModeCurrent = "current"
 )
 
+// SetOpenFunc allows overriding the default open function for testing purposes.
+func (g *Git) SetOpenFunc(openFunc func(path string) (*git.Repository, error)) {
+	g.open = openFunc
+}
+
 func (g *Git) IsRepo() (bool, error) {
 	_, err := g.open(".")
 	if err != nil {
