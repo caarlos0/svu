@@ -104,7 +104,7 @@ func TestGetAllTags(t *testing.T) {
 	repo := setupTestRepo(t)
 	g := &Git{open: repo.PlainOpen}
 
-	tags, err := g.getAllTags()
+	tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
 	require.NoError(t, err)
 	assert.Equal(t, []string{"v1.1.0", "v1.0.0"}, tags)
 }
@@ -114,19 +114,19 @@ func TestDescribeTag(t *testing.T) {
 	g := &Git{open: repo.PlainOpen}
 
 	t.Run("no pattern", func(t *testing.T) {
-		tag, err := g.DescribeTag("")
+		tag, err := g.DescribeTag(TagModeAll, "") // Pass TagModeAll
 		require.NoError(t, err)
 		assert.Equal(t, "v1.1.0", tag)
 	})
 
 	t.Run("with pattern", func(t *testing.T) {
-		tag, err := g.DescribeTag("v1.0.*")
+		tag, err := g.DescribeTag(TagModeAll, "v1.0.*") // Pass TagModeAll
 		require.NoError(t, err)
 		assert.Equal(t, "v1.0.0", tag)
 	})
 
 	t.Run("no match", func(t *testing.T) {
-		tag, err := g.DescribeTag("v2.*")
+		tag, err := g.DescribeTag(TagModeAll, "v2.*") // Pass TagModeAll
 		assert.Error(t, err)
 		assert.Empty(t, tag)
 	})
@@ -191,7 +191,7 @@ func TestEdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, isRepo)
 
-		tags, err := g.getAllTags()
+		tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
 		require.NoError(t, err)
 		assert.Empty(t, tags)
 
@@ -211,7 +211,7 @@ func TestEdgeCases(t *testing.T) {
 			return repo.repo.DeleteTag(ref.Name().Short())
 		})
 
-		tags, err := g.getAllTags()
+		tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
 		require.NoError(t, err)
 		assert.Empty(t, tags)
 	})
@@ -226,7 +226,7 @@ func TestDescribeTag_NoTagsFound(t *testing.T) {
 	g := &Git{}
 	g.SetOpenFunc(mockOpen)
 
-	tag, err := g.DescribeTag("")
+	tag, err := g.DescribeTag(TagModeAll, "") // Pass TagModeAll
 	if err == nil || err.Error() != "no tags found in the repository" {
 		t.Fatalf("expected error 'no tags found in the repository', got: %v", err)
 	}

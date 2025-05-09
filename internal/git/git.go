@@ -15,7 +15,7 @@ import (
 
 // GitInterface defines the methods that Git must implement.
 type GitInterface interface {
-	DescribeTag(pattern string) (string, error) // Updated signature
+	DescribeTag(tagMode string, pattern string) (string, error) // Updated signature
 	Changelog(tag string, dirs []string) ([]Commit, error)
 	IsRepo() (bool, error)
 	Root() (string, error)
@@ -83,7 +83,7 @@ func (v *versionSorter) Len() int           { return len(v.tags) }
 func (v *versionSorter) Swap(i, j int)      { v.tags[i], v.tags[j] = v.tags[j], v.tags[i] }
 func (v *versionSorter) Less(i, j int) bool { return v.versions[i].LessThan(v.versions[j]) }
 
-func (g *Git) getAllTags() ([]string, error) {
+func (g *Git) getAllTags(tagMode string) ([]string, error) {
 	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
@@ -96,6 +96,29 @@ func (g *Git) getAllTags() ([]string, error) {
 
 	var tagList []string
 	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		// If tagMode is "current", filter tags that are merged into the current branch
+		if tagMode == TagModeCurrent {
+			headRef, err := repo.Head()
+			if err != nil {
+				return err
+			}
+
+			headCommit, err := repo.CommitObject(headRef.Hash()) // Resolve headRef.Hash() to *object.Commit
+			if err != nil {
+				return err
+			}
+
+			commit, err := repo.CommitObject(ref.Hash())
+			if err != nil {
+				return nil // Skip non-commit tags
+			}
+
+			isAncestor, err := commit.IsAncestor(headCommit) // Use headCommit here
+			if err != nil || !isAncestor {
+				return nil // Skip tags not merged into the current branch
+			}
+		}
+
 		tagList = append(tagList, ref.Name().Short())
 		return nil
 	})
@@ -123,8 +146,8 @@ func (g *Git) getAllTags() ([]string, error) {
 	return tagList, nil
 }
 
-func (g *Git) DescribeTag(pattern string) (string, error) {
-	tags, err := g.getAllTags()
+func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
+	tags, err := g.getAllTags(tagMode)
 	if err != nil {
 		return "", fmt.Errorf("no tags found in the repository")
 	}
