@@ -186,6 +186,29 @@ func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 	return g.gitLog(dirs, tagCommit.Hash)
 }
 
+// Helper function to check if a commit modifies files in the specified directories.
+func commitTouchesDirs(commit *object.Commit, dirs []string) (bool, error) {
+	files, err := commit.Files()
+	if err != nil {
+		return false, fmt.Errorf("failed to retrieve files for commit %s: %w", commit.Hash.String(), err)
+	}
+
+	var found bool
+	err = files.ForEach(func(file *object.File) error {
+		for _, dir := range dirs {
+			if strings.HasPrefix(file.Name, dir) {
+				found = true
+				return io.EOF // Stop iteration when a match is found.
+			}
+		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+	return found, nil
+}
+
 func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 	repo, err := g.open(".")
 	if err != nil {
@@ -194,7 +217,7 @@ func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 
 	headRef, err := repo.Head()
 	if err == plumbing.ErrReferenceNotFound {
-		// Handle empty repository gracefully
+		// Handle empty repository gracefully.
 		return []Commit{}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to get repository head: %w", err)
@@ -216,28 +239,15 @@ func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
 			return nil, fmt.Errorf("error iterating through commits: %w", err)
 		}
 
-		// Stop at the specified commit hash
+		// Stop at the specified commit hash.
 		if since != plumbing.ZeroHash && commit.Hash == since {
 			break
 		}
 
+		// Check if the commit touches the specified directories.
 		if len(dirs) > 0 {
-			files, err := commit.Files()
+			found, err := commitTouchesDirs(commit, dirs)
 			if err != nil {
-				return nil, fmt.Errorf("failed to retrieve files for commit %s: %w", commit.Hash.String(), err)
-			}
-
-			var found bool
-			err = files.ForEach(func(file *object.File) error {
-				for _, dir := range dirs {
-					if strings.HasPrefix(file.Name, dir) {
-						found = true
-						return io.EOF
-					}
-				}
-				return nil
-			})
-			if err != nil && err != io.EOF {
 				return nil, err
 			}
 			if !found {
