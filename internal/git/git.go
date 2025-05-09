@@ -83,7 +83,7 @@ func (v *versionSorter) Len() int           { return len(v.tags) }
 func (v *versionSorter) Swap(i, j int)      { v.tags[i], v.tags[j] = v.tags[j], v.tags[i] }
 func (v *versionSorter) Less(i, j int) bool { return v.versions[i].LessThan(v.versions[j]) }
 
-func (g *Git) getAllTags(tagMode string) ([]string, error) {
+func (g *Git) getAllTags() ([]string, error) {
 	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
@@ -123,8 +123,8 @@ func (g *Git) getAllTags(tagMode string) ([]string, error) {
 	return tagList, nil
 }
 
-func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
-	tags, err := g.getAllTags(tagMode)
+func (g *Git) DescribeTag(pattern string) (string, error) {
+	tags, err := g.getAllTags()
 	if err != nil {
 		return "", fmt.Errorf("no tags found in the repository")
 	}
