@@ -14,13 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Mock the `run` function to simulate Git CLI behavior
-func mockRun(output string, err error) func(args ...string) (string, error) {
-	return func(args ...string) (string, error) {
-		return output, err
-	}
-}
-
 type testGitRepo struct {
 	repo *git.Repository
 }
