@@ -7,6 +7,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/caarlos0/svu/v3/internal/git"
+	"github.com/go-git/go-git/plumbing"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -34,6 +35,16 @@ func (m *MockGit) IsRepo() (bool, error) {
 func (m *MockGit) Root() (string, error) {
 	args := m.Called()
 	return args.String(0), args.Error(1)
+}
+
+func (m *MockGit) GetAllTags(tagMode string) ([]string, error) {
+	args := m.Called(tagMode)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockGit) GitLog(dirs []string, since plumbing.Hash) ([]git.Commit, error) {
+	args := m.Called(dirs, since)
+	return args.Get(0).([]git.Commit), args.Error(1)
 }
 
 func TestVersion(t *testing.T) {
@@ -368,4 +379,13 @@ func Test_nextPreRelease(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetAllTags(t *testing.T) {
+	mockGit := new(MockGit)
+	mockGit.On("GetAllTags", git.TagModeAll).Return([]string{"v1.0.0", "v1.1.0"}, nil)
+
+	tags, err := mockGit.GetAllTags(git.TagModeAll)
+	require.NoError(t, err)
+	require.Equal(t, []string{"v1.0.0", "v1.1.0"}, tags)
 }
