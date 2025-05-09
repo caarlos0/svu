@@ -38,6 +38,11 @@ type Commit struct {
 	Body  string
 }
 
+const (
+	TagModeAll     = "all"
+	TagModeCurrent = "current"
+)
+
 func (c Commit) String() string {
 	return c.SHA + ": " + c.Title + "\n" + c.Body
 }
