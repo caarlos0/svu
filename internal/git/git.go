@@ -126,11 +126,11 @@ func (g *Git) getAllTags(tagMode string) ([]string, error) {
 func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
 	tags, err := g.getAllTags(tagMode)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("no tags found in the repository")
 	}
 
 	if len(tags) == 0 {
-		return "", nil
+		return "", fmt.Errorf("no tags found in the repository")
 	}
 	if pattern == "" {
 		return tags[0], nil
