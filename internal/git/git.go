@@ -19,7 +19,8 @@ type GitInterface interface {
 	Changelog(tag string, dirs []string) ([]Commit, error)
 	IsRepo() (bool, error)
 	Root() (string, error)
-	GetAllTags(tagMode string) ([]string, error) // New method
+	GetAllTags(tagMode string) ([]string, error)                 // New method
+	GitLog(dirs []string, since plumbing.Hash) ([]Commit, error) // New method
 }
 
 // Git is the implementation of GitInterface.
@@ -77,6 +78,10 @@ func (g *Git) Root() (string, error) {
 
 func (g *Git) GetAllTags(tagMode string) ([]string, error) {
 	return g.getAllTags(tagMode)
+}
+
+func (g *Git) GitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
+	return g.gitLog(dirs, since)
 }
 
 type versionSorter struct {
