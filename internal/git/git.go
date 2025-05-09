@@ -15,7 +15,7 @@ import (
 
 // GitInterface defines the methods that Git must implement.
 type GitInterface interface {
-	DescribeTag(tagMode string, pattern string) (string, error)
+	DescribeTag(pattern string) (string, error) // Updated signature
 	Changelog(tag string, dirs []string) ([]Commit, error)
 	IsRepo() (bool, error)
 	Root() (string, error)
@@ -41,11 +41,6 @@ type Commit struct {
 func (c Commit) String() string {
 	return c.SHA + ": " + c.Title + "\n" + c.Body
 }
-
-const (
-	TagModeAll     = "all"
-	TagModeCurrent = "current"
-)
 
 // SetOpenFunc allows overriding the default open function for testing purposes.
 func (g *Git) SetOpenFunc(openFunc func(path string) (*git.Repository, error)) {
