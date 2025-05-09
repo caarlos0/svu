@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/caarlos0/go-version v0.2.0
 	github.com/go-git/go-billy/v5 v5.6.2
+	github.com/go-git/go-git v4.7.0+incompatible
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/gobwas/glob v0.2.3
 	github.com/hashicorp/go-version v1.7.0
