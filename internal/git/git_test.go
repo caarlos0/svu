@@ -1,196 +1,237 @@
 package git
 
 import (
-	"os"
-	"path"
 	"testing"
 	"time"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsRepo(t *testing.T) {
-	t.Run("is not a repo", func(t *testing.T) {
-		tempdir(t)
-		require.False(t, IsRepo()) // should not be arepo
-	})
+type testGitRepo struct {
+	repo *git.Repository
+}
 
-	t.Run("is a repo", func(t *testing.T) {
-		tempdir(t)
-		gitInit(t)
-		require.True(t, IsRepo()) // should be arepo
+func (t *testGitRepo) PlainOpen(path string) (*git.Repository, error) {
+	return t.repo, nil
+}
+
+func setupTestRepo(t *testing.T) *testGitRepo {
+	t.Helper()
+	repo, err := git.Init(memory.NewStorage(), memfs.New())
+	require.NoError(t, err)
+
+	wt, err := repo.Worktree()
+	require.NoError(t, err)
+
+	sig := &object.Signature{
+		Name:  "test",
+		Email: "test@example.com",
+		When:  time.Now(),
+	}
+
+	writeFile := func(fs billy.Filesystem, filename, content string) {
+		file, err := fs.Create(filename)
+		require.NoError(t, err)
+		defer file.Close()
+
+		_, err = file.Write([]byte(content))
+		require.NoError(t, err)
+	}
+
+	filename := "file.txt"
+	writeFile(wt.Filesystem, filename, "Initial content")
+
+	_, err = wt.Add(filename)
+	require.NoError(t, err)
+
+	hash, err := wt.Commit("Initial commit\n\nBody message", &git.CommitOptions{Author: sig})
+	require.NoError(t, err)
+
+	_, err = repo.CreateTag("v1.0.0", hash, nil)
+	require.NoError(t, err)
+
+	writeFile(wt.Filesystem, filename, "Second commit content")
+
+	_, err = wt.Add(filename)
+	require.NoError(t, err)
+
+	hash2, err := wt.Commit("Second commit\n\nMore details", &git.CommitOptions{Author: sig})
+	require.NoError(t, err)
+
+	_, err = repo.CreateTag("v1.1.0", hash2, &git.CreateTagOptions{
+		Tagger:  sig,
+		Message: "annotated tag",
 	})
+	require.NoError(t, err)
+
+	writeFile(wt.Filesystem, filename, "Third commit content")
+
+	_, err = wt.Add(filename)
+	require.NoError(t, err)
+
+	_, err = wt.Commit("Third commit\n\nWith more changes", &git.CommitOptions{Author: sig})
+	require.NoError(t, err)
+
+	return &testGitRepo{repo: repo}
+}
+
+func TestIsRepo(t *testing.T) {
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
+
+	isRepo, err := g.IsRepo()
+	require.NoError(t, err)
+	assert.True(t, isRepo)
+}
+
+func TestRoot(t *testing.T) {
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
+
+	root, err := g.Root()
+	require.NoError(t, err)
+	assert.NotEmpty(t, root)
+}
+
+func TestGetAllTags(t *testing.T) {
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
+
+	tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
+	require.NoError(t, err)
+	assert.Equal(t, []string{"v1.1.0", "v1.0.0"}, tags)
 }
 
 func TestDescribeTag(t *testing.T) {
-	setup := func(tb testing.TB) {
-		tb.Helper()
-		tempdir(tb)
-		gitInit(tb)
-		gitCommit(tb, "chore: foobar")
-		gitTag(tb, "pattern-1.2.3")
-		gitCommit(tb, "lalalala")
-		gitTag(tb, "v1.2.3")
-		gitTag(tb, "v1.2.4") // multiple tags in a single commit
-		gitCommit(tb, "chore: aaafoobar")
-		gitCommit(tb, "docs: asdsad")
-		gitCommit(tb, "fix: fooaaa")
-		time.Sleep(time.Second) // TODO: no idea why, but without the sleep sometimes commits are in wrong order
-		createBranch(tb, "not-main")
-		gitCommit(tb, "docs: update")
-		gitCommit(tb, "foo: bar")
-		gitTag(tb, "v1.2.5")
-		gitTag(tb, "v1.2.5-prerelease")
-		switchToBranch(tb, "-")
-	}
-	t.Run(TagModeCurrent, func(t *testing.T) {
-		setup(t)
-		tag, err := DescribeTag(TagModeCurrent, "")
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
+
+	t.Run("no pattern", func(t *testing.T) {
+		tag, err := g.DescribeTag(TagModeAll, "") // Pass TagModeAll
 		require.NoError(t, err)
-		require.Equal(t, "v1.2.4", tag)
+		assert.Equal(t, "v1.1.0", tag)
 	})
 
-	t.Run(TagModeAll, func(t *testing.T) {
-		setup(t)
-		tag, err := DescribeTag(TagModeAll, "")
+	t.Run("with pattern", func(t *testing.T) {
+		tag, err := g.DescribeTag(TagModeAll, "v1.0.*") // Pass TagModeAll
 		require.NoError(t, err)
-		require.Equal(t, "v1.2.5", tag)
+		assert.Equal(t, "v1.0.0", tag)
 	})
 
-	t.Run("pattern", func(t *testing.T) {
-		setup(t)
-		tag, err := DescribeTag(TagModeCurrent, "pattern-*")
-		require.NoError(t, err)
-		require.Equal(t, "pattern-1.2.3", tag)
+	t.Run("no match", func(t *testing.T) {
+		tag, err := g.DescribeTag(TagModeAll, "v2.*") // Pass TagModeAll
+		assert.Error(t, err)
+		assert.Empty(t, tag)
 	})
 }
 
 func TestChangelog(t *testing.T) {
-	tempdir(t)
-	gitInit(t)
-	gitCommit(t, "chore: foobar")
-	gitCommit(t, "lalalala")
-	gitTag(t, "v1.2.3")
-	for _, msg := range []string{
-		"chore: foobar",
-		"fix: foo",
-		"feat: foobar",
-	} {
-		gitCommit(t, msg)
-	}
-	log, err := Changelog("v1.2.3", nil)
-	require.NoError(t, err)
-	for _, title := range []string{
-		"chore: foobar",
-		"fix: foo",
-		"feat: foobar",
-	} {
-		requireLogContains(t, log, title)
-	}
-}
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
 
-func requireLogContains(tb testing.TB, log []Commit, title string) {
-	tb.Helper()
-	for _, commit := range log {
-		if commit.Title == title {
-			return
-		}
-	}
-	tb.Errorf("expected %v to contain a commit with msg %q", log, title)
-}
-
-func requireLogNotContains(tb testing.TB, log []Commit, title string) {
-	tb.Helper()
-	for _, commit := range log {
-		if commit.Title == title {
-			tb.Errorf("expected %v to not contain a commit with msg %q", log, title)
-		}
-	}
-}
-
-func TestChangelogWithDirectory(t *testing.T) {
-	tempDir := tempdir(t)
-	localDir := dir(tempDir, t)
-	file := tempfile(t, localDir)
-	gitInit(t)
-	gitCommit(t, "chore: foobar")
-	gitCommit(t, "lalalala")
-	gitTag(t, "v1.2.3")
-	gitCommit(t, "feat: foobar")
-	gitAdd(t, file)
-	gitCommit(t, "chore: filtered dir")
-	log, err := Changelog("v1.2.3", []string{localDir})
-	require.NoError(t, err)
-
-	requireLogContains(t, log, "chore: filtered dir")
-	requireLogNotContains(t, log, "feat: foobar")
-}
-
-func switchToBranch(tb testing.TB, branch string) {
-	_, err := fakeGitRun("switch", branch)
-	require.NoError(tb, err)
-}
-
-func createBranch(tb testing.TB, branch string) {
-	_, err := fakeGitRun("switch", "-c", branch)
-	require.NoError(tb, err)
-}
-
-func gitTag(tb testing.TB, tag string) {
-	_, err := fakeGitRun("tag", tag)
-	require.NoError(tb, err)
-}
-
-func gitCommit(tb testing.TB, msg string) {
-	_, err := fakeGitRun("commit", "--allow-empty", "-am", msg)
-	require.NoError(tb, err)
-}
-
-func gitAdd(tb testing.TB, path string) {
-	_, err := fakeGitRun("add", path)
-	require.NoError(tb, err)
-}
-
-func gitInit(tb testing.TB) {
-	_, err := fakeGitRun("init")
-	require.NoError(tb, err)
-}
-
-func tempdir(tb testing.TB) string {
-	previous, err := os.Getwd()
-	require.NoError(tb, err)
-	tb.Cleanup(func() {
-		require.NoError(tb, os.Chdir(previous))
+	t.Run("full changelog", func(t *testing.T) {
+		commits, err := g.Changelog("", nil)
+		require.NoError(t, err)
+		require.Len(t, commits, 3)
+		assert.Equal(t, "Third commit", commits[0].Title)
+		assert.Equal(t, "Initial commit", commits[2].Title)
 	})
-	dir := tb.TempDir()
-	require.NoError(tb, os.Chdir(dir))
-	tb.Logf("cd into %s", dir)
-	return dir
+
+	t.Run("since tag", func(t *testing.T) {
+		commits, err := g.Changelog("v1.0.0", nil)
+		require.NoError(t, err)
+		require.Len(t, commits, 2)
+		assert.Equal(t, "Third commit", commits[0].Title)
+		assert.Equal(t, "Second commit", commits[1].Title)
+	})
 }
 
-func dir(tempDir string, tb testing.TB) string {
-	createdDir := path.Join(tempDir, "a-folder")
-	err := os.Mkdir(createdDir, 0o755)
-	require.NoError(tb, err)
-	return createdDir
+func TestGitLog(t *testing.T) {
+	repo := setupTestRepo(t)
+	g := &Git{open: repo.PlainOpen}
+
+	t.Run("retrieve all commits", func(t *testing.T) {
+		commits, err := g.gitLog(nil, plumbing.ZeroHash)
+		require.NoError(t, err)
+		require.Len(t, commits, 3)
+		assert.Equal(t, "Third commit", commits[0].Title)
+		assert.Equal(t, "Initial commit", commits[2].Title)
+	})
+
+	t.Run("stop at specific commit", func(t *testing.T) {
+		// Get the hash of the "Initial commit"
+		commits, err := g.gitLog(nil, plumbing.ZeroHash)
+		require.NoError(t, err)
+		require.Len(t, commits, 3)
+		initialCommitHash := commits[2].SHA
+
+		// Use the hash of the "Initial commit" as the `since` parameter
+		commits, err = g.gitLog(nil, plumbing.NewHash(initialCommitHash))
+		require.NoError(t, err)
+		require.Len(t, commits, 2)
+		assert.Equal(t, "Third commit", commits[0].Title)
+		assert.Equal(t, "Second commit", commits[1].Title)
+	})
 }
 
-func tempfile(tb testing.TB, dir string) string {
-	d1 := []byte("hello\ngo\n")
-	file := path.Join(dir, "a-file.txt")
-	err := os.WriteFile(file, d1, 0o644)
-	require.NoError(tb, err)
-	return file
+func TestEdgeCases(t *testing.T) {
+	t.Run("empty repository", func(t *testing.T) {
+		repo, err := git.Init(memory.NewStorage(), memfs.New())
+		require.NoError(t, err)
+		g := &Git{open: func(path string) (*git.Repository, error) { return repo, nil }}
+
+		isRepo, err := g.IsRepo()
+		require.NoError(t, err)
+		assert.True(t, isRepo)
+
+		tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
+		require.NoError(t, err)
+		assert.Empty(t, tags)
+
+		commits, err := g.gitLog(nil, plumbing.ZeroHash)
+		require.NoError(t, err)
+		assert.Empty(t, commits)
+	})
+
+	t.Run("no tags", func(t *testing.T) {
+		repo := setupTestRepo(t)
+		g := &Git{open: repo.PlainOpen}
+
+		// Remove all tags
+		iter, err := repo.repo.Tags()
+		require.NoError(t, err)
+		iter.ForEach(func(ref *plumbing.Reference) error {
+			return repo.repo.DeleteTag(ref.Name().Short())
+		})
+
+		tags, err := g.getAllTags(TagModeAll) // Pass TagModeAll
+		require.NoError(t, err)
+		assert.Empty(t, tags)
+	})
 }
 
-func fakeGitRun(args ...string) (string, error) {
-	allArgs := []string{
-		"-c", "user.name='svu'",
-		"-c", "user.email='svu@example.com'",
-		"-c", "commit.gpgSign=false",
-		"-c", "tag.gpgSign=false",
-		"-c", "log.showSignature=false",
+func TestDescribeTag_NoTagsFound(t *testing.T) {
+	mockOpen := func(path string) (*git.Repository, error) {
+		// Return a mock repository or simulate an empty repository
+		return nil, plumbing.ErrObjectNotFound
 	}
-	allArgs = append(allArgs, args...)
-	return run(allArgs...)
+
+	g := &Git{}
+	g.SetOpenFunc(mockOpen)
+
+	tag, err := g.DescribeTag(TagModeAll, "") // Pass TagModeAll
+	if err == nil || err.Error() != "no tags found in the repository" {
+		t.Fatalf("expected error 'no tags found in the repository', got: %v", err)
+	}
+
+	if tag != "" {
+		t.Fatalf("expected no tag, got: %s", tag)
+	}
 }

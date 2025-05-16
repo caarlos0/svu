@@ -1,24 +1,43 @@
 package git
 
 import (
-	"errors"
 	"fmt"
-	"os/exec"
+	"io"
+	"sort"
 	"strings"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/gobwas/glob"
+	"github.com/hashicorp/go-version"
 )
 
-// Commit is a commit with a hash, title (first line of the message), and body
-// (rest of the message, not including the title).
+// GitInterface defines the methods that Git must implement.
+type GitInterface interface {
+	DescribeTag(tagMode string, pattern string) (string, error) // Updated signature
+	Changelog(tag string, dirs []string) ([]Commit, error)
+	IsRepo() (bool, error)
+	Root() (string, error)
+	GetAllTags(tagMode string) ([]string, error)                 // New method
+	GitLog(dirs []string, since plumbing.Hash) ([]Commit, error) // New method
+}
+
+// Git is the implementation of GitInterface.
+type Git struct {
+	open func(path string) (*git.Repository, error)
+}
+
+func New() *Git {
+	return &Git{
+		open: git.PlainOpen,
+	}
+}
+
 type Commit struct {
 	SHA   string
 	Title string
 	Body  string
-}
-
-func (c Commit) String() string {
-	return c.SHA + ": " + c.Title + "\n" + c.Body
 }
 
 const (
@@ -26,107 +45,266 @@ const (
 	TagModeCurrent = "current"
 )
 
-// copied from goreleaser
-
-// IsRepo returns true if current folder is a git repository
-func IsRepo() bool {
-	out, err := run("rev-parse", "--is-inside-work-tree")
-	return err == nil && strings.TrimSpace(out) == "true"
+func (c Commit) String() string {
+	return c.SHA + ": " + c.Title + "\n" + c.Body
 }
 
-func Root() string {
-	out, _ := run("rev-parse", "--show-toplevel")
-	return strings.TrimSpace(out)
+// SetOpenFunc allows overriding the default open function for testing purposes.
+func (g *Git) SetOpenFunc(openFunc func(path string) (*git.Repository, error)) {
+	g.open = openFunc
 }
 
-func getAllTags(args ...string) ([]string, error) {
-	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
+func (g *Git) IsRepo() (bool, error) {
+	_, err := g.open(".")
+	if err != nil {
+		return false, fmt.Errorf("not a git repository: %w", err)
+	}
+	return true, nil
+}
+
+func (g *Git) Root() (string, error) {
+	repo, err := g.open(".")
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve repository root: %w", err)
+	}
+
+	wt, err := repo.Worktree()
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve worktree: %w", err)
+	}
+
+	return wt.Filesystem.Root(), nil
+}
+
+func (g *Git) GetAllTags(tagMode string) ([]string, error) {
+	return g.getAllTags(tagMode)
+}
+
+func (g *Git) GitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
+	return g.gitLog(dirs, since)
+}
+
+type versionSorter struct {
+	tags     []string
+	versions []*version.Version
+}
+
+func (v *versionSorter) Len() int           { return len(v.tags) }
+func (v *versionSorter) Swap(i, j int)      { v.tags[i], v.tags[j] = v.tags[j], v.tags[i] }
+func (v *versionSorter) Less(i, j int) bool { return v.versions[i].LessThan(v.versions[j]) }
+
+func (g *Git) getAllTags(tagMode string) ([]string, error) {
+	repo, err := g.open(".")
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(tags, "\n"), nil
+
+	tags, err := repo.Tags()
+	if err != nil {
+		return nil, err
+	}
+
+	var tagList []string
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		// If tagMode is "current", filter tags that are merged into the current branch
+		if tagMode == TagModeCurrent {
+			headRef, err := repo.Head()
+			if err != nil {
+				return err
+			}
+
+			headCommit, err := repo.CommitObject(headRef.Hash()) // Resolve headRef.Hash() to *object.Commit
+			if err != nil {
+				return err
+			}
+
+			commit, err := repo.CommitObject(ref.Hash())
+			if err != nil {
+				return nil // Skip non-commit tags
+			}
+
+			isAncestor, err := commit.IsAncestor(headCommit) // Use headCommit here
+			if err != nil || !isAncestor {
+				return nil // Skip tags not merged into the current branch
+			}
+		}
+
+		tagList = append(tagList, ref.Name().Short())
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse tags into semantic versions
+	var versions []*version.Version
+	for _, tag := range tagList {
+		ver, err := version.NewVersion(tag)
+		if err != nil {
+			// Skip tags that are not valid semantic versions
+			continue
+		}
+		versions = append(versions, ver)
+	}
+
+	// Sort tags using versionSorter
+	sort.Sort(sort.Reverse(&versionSorter{
+		tags:     tagList,
+		versions: versions,
+	}))
+
+	return tagList, nil
 }
 
-func DescribeTag(tagMode string, pattern string) (string, error) {
-	args := []string{}
-	if tagMode == TagModeCurrent {
-		args = []string{"--merged"}
-	}
-	tags, err := getAllTags(args...)
+func (g *Git) DescribeTag(tagMode string, pattern string) (string, error) {
+	tags, err := g.getAllTags(tagMode)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("no tags found in the repository")
 	}
 
 	if len(tags) == 0 {
-		return "", nil
+		return "", fmt.Errorf("no tags found in the repository")
 	}
 	if pattern == "" {
 		return tags[0], nil
 	}
 
-	g, err := glob.Compile(pattern)
+	matcher, err := glob.Compile(pattern)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to compile pattern: %w", err)
 	}
 	for _, tag := range tags {
-		if g.Match(tag) {
+		if matcher.Match(tag) {
 			return tag, nil
 		}
 	}
-	return "", fmt.Errorf("no tags match '%s'", pattern)
+	return "", fmt.Errorf("no tags match '%s', available tags: %v", pattern, tags)
 }
 
-func Changelog(tag string, dirs []string) ([]Commit, error) {
+func (g *Git) Changelog(tag string, dirs []string) ([]Commit, error) {
 	if tag == "" {
-		return gitLog(dirs, "HEAD")
-	} else {
-		return gitLog(dirs, fmt.Sprintf("tags/%s..HEAD", tag))
+		return g.gitLog(dirs, plumbing.ZeroHash)
 	}
+
+	repo, err := g.open(".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	tagRef, err := repo.Tag(tag)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find tag '%s': %w", tag, err)
+	}
+
+	var tagCommit *object.Commit
+	switch obj, err := repo.Object(plumbing.AnyObject, tagRef.Hash()); err {
+	case nil:
+		switch obj := obj.(type) {
+		case *object.Commit:
+			tagCommit = obj
+		case *object.Tag:
+			tagCommit, err = repo.CommitObject(obj.Target)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve tag target: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported tag type: %T", obj)
+		}
+	case plumbing.ErrObjectNotFound:
+		return nil, fmt.Errorf("tag not found: %s", tag)
+	default:
+		return nil, fmt.Errorf("failed to retrieve tag object: %w", err)
+	}
+
+	return g.gitLog(dirs, tagCommit.Hash)
 }
 
-func run(args ...string) (string, error) {
-	extraArgs := []string{
-		"-c", "log.showSignature=false",
-	}
-	args = append(extraArgs, args...)
-	/* #nosec */
-	cmd := exec.Command("git", args...)
-	bts, err := cmd.CombinedOutput()
+// Helper function to check if a commit modifies files in the specified directories.
+func commitTouchesDirs(commit *object.Commit, dirs []string) (bool, error) {
+	files, err := commit.Files()
 	if err != nil {
-		return "", errors.New(string(bts))
+		return false, fmt.Errorf("failed to retrieve files for commit %s: %w", commit.Hash.String(), err)
 	}
-	return string(bts), nil
+
+	var found bool
+	err = files.ForEach(func(file *object.File) error {
+		for _, dir := range dirs {
+			if strings.HasPrefix(file.Name, dir) {
+				found = true
+				return io.EOF // Stop iteration when a match is found.
+			}
+		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+	return found, nil
 }
 
-func gitLog(dirs []string, refs ...string) ([]Commit, error) {
-	args := []string{"log", "--no-decorate", "--no-color", `--format=%H:%B<svu-commit-end>`}
-	args = append(args, refs...)
-	if len(dirs) > 0 {
-		args = append(args, "--")
-		args = append(args, dirs...)
-	}
-	s, err := run(args...)
+func (g *Git) gitLog(dirs []string, since plumbing.Hash) ([]Commit, error) {
+	repo, err := g.open(".")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
+
+	headRef, err := repo.Head()
+	if err == plumbing.ErrReferenceNotFound {
+		// Handle empty repository gracefully.
+		return []Commit{}, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get repository head: %w", err)
+	}
+
+	commitIter, err := repo.Log(&git.LogOptions{From: headRef.Hash()})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve commit log: %w", err)
+	}
+	defer commitIter.Close()
+
 	var result []Commit
-	for _, commit := range strings.Split(s, "<svu-commit-end>") {
-		commit = strings.TrimSpace(commit)
-		if commit == "" { // accounts for the last split, which will be an empty line
-			continue
+	for {
+		commit, err := commitIter.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error iterating through commits: %w", err)
 		}
 
-		hashEndIdx := strings.Index(commit, ":")
-		titleEndIdx := strings.Index(commit, "\n")
+		// Stop at the specified commit hash.
+		if since != plumbing.ZeroHash && commit.Hash == since {
+			break
+		}
+
+		// Check if the commit touches the specified directories.
+		if len(dirs) > 0 {
+			found, err := commitTouchesDirs(commit, dirs)
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				continue
+			}
+		}
+
+		message := commit.Message
+		titleEndIdx := strings.Index(message, "\n")
+		var title, body string
 		if titleEndIdx < 0 {
-			titleEndIdx = len(commit)
+			title = message
+			body = ""
+		} else {
+			title = message[:titleEndIdx]
+			body = message[titleEndIdx+1:]
 		}
 
 		result = append(result, Commit{
-			commit[:hashEndIdx],
-			commit[hashEndIdx+1 : titleEndIdx],
-			commit[min(titleEndIdx+1, len(commit)):],
+			SHA:   commit.Hash.String(),
+			Title: title,
+			Body:  strings.TrimSpace(body),
 		})
 	}
+
 	return result, nil
 }
