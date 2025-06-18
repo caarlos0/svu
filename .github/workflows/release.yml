@@ -37,7 +37,7 @@ jobs:
           registry: docker.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: sigstore/cosign-installer@v3.8.2
+      - uses: sigstore/cosign-installer@v3.9.0
       - uses: anchore/sbom-action/download-syft@v0.20.1
       - uses: cachix/install-nix-action@v31
         with:
