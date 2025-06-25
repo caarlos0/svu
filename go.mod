@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/caarlos0/go-version v0.2.0
+	github.com/caarlos0/go-version v0.2.1
 	github.com/gobwas/glob v0.2.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
