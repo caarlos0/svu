@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"strings"
 
 	goversion "github.com/caarlos0/go-version"
@@ -26,6 +27,7 @@ var examples []byte
 
 func main() {
 	var verbose bool
+	var configFile string
 	var opts svu.Options
 
 	runFunc := func(cmd *cobra.Command) error {
@@ -124,12 +126,13 @@ func main() {
 		Short:   "Creates a svu configuration file",
 		Aliases: []string{"i"},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return os.WriteFile(".svu.yaml", exampleConfig, 0o644)
+			return os.WriteFile(configFile, exampleConfig, 0o644)
 		},
 	}
 
 	rootCmd.SetVersionTemplate("{{.Version}}")
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "enable logs")
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", ".svu.yml", "set config file")
 	rootCmd.AddCommand(initCmd)
 	nextCmd.Flags().BoolVar(&opts.Always, "always", false, "if no commits trigger a version change, increment the patch")
 	nextCmd.Flags().BoolVar(&opts.KeepV0, "v0", false, "prevent major version increments if current version is still v0")
@@ -146,6 +149,7 @@ func main() {
 		cmd.Flags().BoolVar(&opts.JSON, "json", false, "output version as json")
 		cmd.Flags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 		cmd.Flags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
+		cmd.Flags().BoolVar(&opts.StripPrefix, "tag.strip-prefix", false, "strip the tag prefix from the output")
 		cmd.Flags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
 		cmd.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
 		cmd.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
@@ -158,18 +162,20 @@ func main() {
 	} {
 		cmd.Flags().StringSliceVar(&opts.Directories, "log.directory", nil, "only use commits that changed files in the given directories")
 	}
-
-	home, _ := os.UserHomeDir()
-	config, _ := os.UserConfigDir()
-	viper.AutomaticEnv()
-	viper.SetEnvPrefix("svu")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath(git.Root(context.Background()))
-	viper.AddConfigPath(config)
-	viper.AddConfigPath(home)
-	viper.SetConfigName(".svu")
-	viper.SetConfigType("yaml")
 	cobra.OnInitialize(func() {
+		home, _ := os.UserHomeDir()
+		config, _ := os.UserConfigDir()
+		cfgPath := path.Dir(configFile)
+		configFile = path.Base(configFile)
+		opts.ConfigRoot = cfgPath
+		viper.AutomaticEnv()
+		viper.SetEnvPrefix("svu")
+		viper.AddConfigPath(cfgPath)
+	viper.AddConfigPath(git.Root(context.Background()))
+		viper.AddConfigPath(config)
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName(configFile)
 		if viper.ReadInConfig() == nil {
 			presetRequiredFlags(rootCmd)
 		}
@@ -189,7 +195,16 @@ func presetRequiredFlags(cmd *cobra.Command) {
 	_ = viper.BindPFlags(cmd.Flags())
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		if viper.IsSet(f.Name) {
-			_ = cmd.Flags().Set(f.Name, viper.GetString(f.Name))
+			switch f.Name {
+			case "log.directory":
+				dirs := viper.GetStringSlice(f.Name)
+				for _, dir := range dirs {
+					cmd.Flags().Set(f.Name, dir)
+				}
+			default:
+				cmd.Flags().Set(f.Name, viper.GetString(f.Name))
+			}
+
 		}
 	})
 	for _, scmd := range cmd.Commands() {

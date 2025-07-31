@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -39,8 +40,9 @@ type Options struct {
 	Prefix      string
 	PreRelease  string
 	Metadata    string
-	Directories []string
 	TagMode     string
+	ConfigRoot  string
+	Directories []string
 	Always      bool
 	KeepV0      bool
 	JSON        bool
