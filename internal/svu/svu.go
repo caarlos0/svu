@@ -3,6 +3,7 @@ package svu
 import (
 	"fmt"
 	"log"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,14 +36,16 @@ type Options struct {
 	Prefix      string
 	PreRelease  string
 	Metadata    string
-	Directories []string
 	TagMode     string
+	ConfigRoot  string
+	Directories []string
 	Always      bool
 	KeepV0      bool
+	StripPrefix bool
 }
 
 func Version(opts Options) (string, error) {
-	tag, err := git.DescribeTag(string(opts.TagMode), opts.Pattern)
+	tag, err := git.DescribeTag(opts.TagMode, opts.Pattern)
 	if err != nil {
 		return "", fmt.Errorf("failed to get current tag for repo: %w", err)
 	}
@@ -55,6 +58,10 @@ func Version(opts Options) (string, error) {
 	result, err := nextVersion(current, tag, opts)
 	if err != nil {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
+	}
+
+	if opts.StripPrefix {
+		return result.String(), nil
 	}
 
 	return opts.Prefix + result.String(), nil
@@ -174,12 +181,15 @@ func findNextWithGitLog(
 	tag string,
 	opts Options,
 ) (semver.Version, error) {
-	log, err := git.Changelog(tag, opts.Directories)
+	for i, dir := range opts.Directories {
+		opts.Directories[i] = path.Join(opts.ConfigRoot, dir)
+	}
+	chgLog, err := git.Changelog(tag, opts.Directories)
 	if err != nil {
 		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
 	}
 
-	return findNext(current, log, opts), nil
+	return findNext(current, chgLog, opts), nil
 }
 
 func isBreaking(commit git.Commit) bool {
