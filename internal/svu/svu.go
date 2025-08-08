@@ -143,6 +143,13 @@ func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Ve
 
 	currentWithoutPreRelease, _ := current.SetPrerelease("")
 
+	// If current is a normal release (no prerelease) and the computed next is not greater than current,
+	// bump the base version (patch) so that the prerelease targets the next normal version.
+	if current.Prerelease() == "" && !next.GreaterThan(&currentWithoutPreRelease) {
+		bumped := current.IncPatch()
+		next = &bumped
+	}
+
 	if !next.GreaterThan(&currentWithoutPreRelease) {
 		preReleaseVersion = -1
 		if len(splitSuffix) == 2 {
