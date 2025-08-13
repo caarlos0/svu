@@ -368,6 +368,16 @@ func Test_nextPreRelease(t *testing.T) {
 			want:    *semver.MustParse("1.2.3-alpha123.2"),
 			wantErr: false,
 		},
+		{
+			name: "from normal version, bump base to next patch when creating prerelease",
+			args: args{
+				current:    semver.MustParse("0.8.0"),
+				next:       semver.MustParse("0.8.0"),
+				preRelease: "dev",
+			},
+			want:    *semver.MustParse("0.8.1-dev.0"),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
