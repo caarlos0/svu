@@ -59,6 +59,10 @@ func main() {
 				)
 			}
 
+			if opts.PrefixOutput == "^tag.prefix^" {
+				opts.PrefixOutput = opts.Prefix
+			}
+
 			if verbose {
 				log.SetFlags(0)
 			} else {
@@ -149,7 +153,7 @@ func main() {
 		cmd.Flags().BoolVar(&opts.JSON, "json", false, "output version as json")
 		cmd.Flags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 		cmd.Flags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
-		cmd.Flags().BoolVar(&opts.StripPrefix, "tag.strip-prefix", false, "strip the tag prefix from the output")
+		cmd.Flags().StringVar(&opts.PrefixOutput, "tag.output", "^tag.prefix^", "set the tag output to use when printing the version (default: 'tag.prefix')")
 		cmd.Flags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
 		cmd.Flags().StringVar(&opts.PreRelease, "prerelease", "", "sets the version prerelease")
 		cmd.Flags().StringVar(&opts.Metadata, "metadata", "", "sets the version metadata")
