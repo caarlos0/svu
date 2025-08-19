@@ -31,17 +31,18 @@ var (
 )
 
 type Options struct {
-	Action      Action
-	Pattern     string
-	Prefix      string
-	PreRelease  string
-	Metadata    string
-	TagMode     string
-	ConfigRoot  string
-	Directories []string
-	Always      bool
-	KeepV0      bool
-	StripPrefix bool
+	Action       Action
+	Pattern      string
+	Prefix       string
+	PrefixOutput string
+	PreRelease   string
+	Metadata     string
+	TagMode      string
+	ConfigRoot   string
+	Directories  []string
+	Always       bool
+	KeepV0       bool
+	StripPrefix  bool
 }
 
 func Version(opts Options) (string, error) {
@@ -60,11 +61,7 @@ func Version(opts Options) (string, error) {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
 	}
 
-	if opts.StripPrefix {
-		return result.String(), nil
-	}
-
-	return opts.Prefix + result.String(), nil
+	return opts.PrefixOutput + result.String(), nil
 }
 
 func nextVersion(
