@@ -1,6 +1,7 @@
 package svu
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"regexp"
@@ -39,6 +40,18 @@ type Options struct {
 	TagMode     string
 	Always      bool
 	KeepV0      bool
+	Json        bool
+}
+
+type VersionInfo struct {
+	Version    string `json:"version"`
+	Major      uint64 `json:"major"`
+	Minor      uint64 `json:"minor"`
+	Patch      uint64 `json:"patch"`
+	Prefix     string `json:"prefix,omitempty"`
+	Metadata   string `json:"metadata,omitempty"`
+	Prerelease string `json:"prerelease,omitempty"`
+	Build      string `json:"build,omitempty"`
 }
 
 func Version(opts Options) (string, error) {
@@ -55,6 +68,10 @@ func Version(opts Options) (string, error) {
 	result, err := nextVersion(current, tag, opts)
 	if err != nil {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
+	}
+
+	if opts.Json {
+		return jsonOutput(result, opts)
 	}
 
 	return opts.Prefix + result.String(), nil
@@ -242,4 +259,29 @@ func findNext(current *semver.Version, changes []git.Commit, opts Options) semve
 		return current.IncPatch()
 	}
 	return *current
+}
+
+func jsonOutput(v semver.Version, opts Options) (string, error) {
+	info := VersionInfo{
+		Prefix:     opts.Prefix,
+		Version:    opts.Prefix + v.String(),
+		Major:      v.Major(),
+		Minor:      v.Minor(),
+		Patch:      v.Patch(),
+		Metadata:   v.Metadata(),
+		Prerelease: v.Prerelease(),
+	}
+
+	// Split prerelease into prerelease + build if it has a dot
+	if release := strings.SplitN(v.Prerelease(), ".", 2); len(release) == 2 {
+		info.Prerelease = release[0]
+		info.Build = release[1]
+	}
+
+	b, err := json.Marshal(info)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert version to json: %w", err)
+	}
+
+	return string(b), nil
 }
