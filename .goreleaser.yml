@@ -2,23 +2,45 @@
 
 version: 2
 
-variables:
+project_name: svu
+
+metadata:
   description: Semantic Version Utility
   homepage: "https://github.com/caarlos0/svu"
+  license: MIT
+  maintainers:
+    - "Carlos Alexandro Becker <carlos at becker dot software>"
 
-includes:
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/build.yml
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/package_with_completions_no_aur.yml
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/release.yml
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/docker.yml
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/cosign_checksum.yml
-  - from_url:
-      url: https://raw.githubusercontent.com/caarlos0/.goreleaserfiles/main/cosign_docker.yml
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+before:
+  hooks:
+    - go mod tidy
+    - ./scripts/completions.sh
+    - ./scripts/manpages.sh
+
+gomod:
+  proxy: true
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .CommitDate }} -X main.builtBy=goreleaser
+
+universal_binaries:
+  - replace: true
 
 furies:
   - account: caarlos0
@@ -28,29 +50,143 @@ archives:
       - README.md
       - LICENSE.md
       - completions/*
+      - manpages/*
     format_overrides:
       - goos: windows
         formats: [zip]
+
+nix:
+  - repository:
+      owner: caarlos0
+      name: nur
+    extra_install: |-
+      installShellCompletion ./completions/*
+      installManPage ./manpages/{{.ProjectName}}.1.gz
 
 aurs:
   - maintainers:
       - "Carlos Alexandro Becker <carlos at becker dot software>"
       - "Rafael Dominiquini <rafaeldominiquini at gmail dor com>"
-    description: "{{ .Var.description }}"
-    name: "svu-bin"
-    homepage: "{{ .Var.homepage }}"
-    license: MIT
+    name: "{{ .ProjectName }}-bin"
     private_key: "{{ .Env.AUR_KEY }}"
-    git_url: "ssh://aur@aur.archlinux.org/svu-bin.git"
+    git_url: "ssh://aur@aur.archlinux.org/{{ .ProjectName }}-bin.git"
     package: |-
       # bin
-      install -Dm755 "./svu" "${pkgdir}/usr/bin/svu"
+      install -Dm755 "./{{ .ProjectName }}" "${pkgdir}/usr/bin/{{ .ProjectName }}"
       # license
-      install -Dm644 "./LICENSE.md" "${pkgdir}/usr/share/licenses/svu/LICENSE"
+      install -Dm644 "./LICENSE.md" "${pkgdir}/usr/share/licenses/{{ .ProjectName }}/LICENSE"
       # completions
       mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
       mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
       mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
-      install -Dm644 "./completions/svu.bash" "${pkgdir}/usr/share/bash-completion/completions/svu"
-      install -Dm644 "./completions/svu.zsh" "${pkgdir}/usr/share/zsh/site-functions/_svu"
-      install -Dm644 "./completions/svu.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/svu.fish"
+      install -Dm644 "./completions/{{ .ProjectName }}.bash" "${pkgdir}/usr/share/bash-completion/completions/{{ .ProjectName }}"
+      install -Dm644 "./completions/{{ .ProjectName }}.zsh" "${pkgdir}/usr/share/zsh/site-functions/_{{ .ProjectName }}"
+      install -Dm644 "./completions/{{ .ProjectName }}.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/{{ .ProjectName }}.fish"
+      # man pages
+      install -Dm644 "./manpages/{{ .ProjectName }}.1.gz" "${pkgdir}/usr/share/man/man1/{{ .ProjectName }}.1.gz"
+
+homebrew_casks:
+  - repository:
+      owner: caarlos0
+      name: homebrew-tap
+    url:
+      verified: "github.com/caarlos0/{{ .ProjectName }}"
+    manpages:
+      - "manpages/{{ .ProjectName }}.1.gz"
+    completions:
+      bash: "completions/{{ .ProjectName }}.bash"
+      zsh: "completions/{{ .ProjectName }}.zsh"
+      fish: "completions/{{ .ProjectName }}.fish"
+
+nfpms:
+  - file_name_template: "{{ .ConventionalFileName }}"
+    contents:
+      - src: ./completions/{{ .ProjectName }}.bash
+        dst: /etc/bash_completion.d/{{ .ProjectName }}
+      - src: ./completions/{{ .ProjectName }}.fish
+        dst: /usr/share/fish/completions/{{ .ProjectName }}.fish
+      - src: ./completions/{{ .ProjectName }}.zsh
+        dst: /usr/local/share/zsh/site-functions/_{{ .ProjectName }}
+      - src: ./manpages/{{ .ProjectName }}.1.gz
+        dst: /usr/share/man/man1/{{ .ProjectName }}.1.gz
+    formats:
+      - deb
+      - rpm
+      - apk
+
+checksum:
+  name_template: "checksums.txt"
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    artifacts: checksum
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+
+dockers_v2:
+  - images:
+      - "ghcr.io/caarlos0/{{ .ProjectName }}"
+      - "caarlos0/{{ .ProjectName }}"
+    tags:
+      - "{{ .Version }}"
+      - latest
+    labels:
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.description": "Semantic Version Utility"
+    annotations:
+      "org.opencontainers.image.description": "Semantic Version Utility"
+
+docker_signs:
+  - cmd: cosign
+    artifacts: manifests
+    args:
+      - "sign"
+      - "${artifact}"
+      - "--yes"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore"
+      - "merge conflict"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+      - go mod tidy
+  groups:
+    - title: Dependency updates
+      regexp: "^.*feat\\(deps\\)*:+.*$"
+      order: 300
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 100
+    - title: "Bug fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 200
+    - title: "Documentation updates"
+      regexp: "^.*docs[(\\w)]*:+.*$"
+      order: 400
+    - title: Other work
+      order: 9999
+
+release:
+  footer: |
+    **Full Changelog**: https://github.com/caarlos0/{{ .ProjectName }}/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ---
+
+    _Released with [GoReleaser Pro](https://goreleaser.com/pro)!_
+
+announce:
+  skip: "{{gt .Patch 0}}"
