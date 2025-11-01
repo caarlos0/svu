@@ -12,6 +12,7 @@ import (
 	goversion "github.com/caarlos0/go-version"
 	"github.com/caarlos0/svu/v3/internal/git"
 	"github.com/caarlos0/svu/v3/internal/svu"
+	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -174,7 +175,12 @@ func main() {
 		}
 	})
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := fang.Execute(
+		context.Background(),
+		rootCmd,
+		fang.WithVersion(rootCmd.Version),
+		fang.WithNotifySignal(os.Interrupt, os.Kill),
+	); err != nil {
 		os.Exit(1)
 	}
 }
