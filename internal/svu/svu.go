@@ -1,6 +1,8 @@
+// Package svu provides semantic version utilities.
 package svu
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -31,6 +33,7 @@ var (
 )
 
 type Options struct {
+	Ctx         context.Context
 	Action      Action
 	Pattern     string
 	Prefix      string
@@ -40,7 +43,7 @@ type Options struct {
 	TagMode     string
 	Always      bool
 	KeepV0      bool
-	Json        bool
+	JSON        bool
 }
 
 type VersionInfo struct {
@@ -55,7 +58,7 @@ type VersionInfo struct {
 }
 
 func Version(opts Options) (string, error) {
-	tag, err := git.DescribeTag(string(opts.TagMode), opts.Pattern)
+	tag, err := git.DescribeTag(opts.Ctx, opts.TagMode, opts.Pattern)
 	if err != nil {
 		return "", fmt.Errorf("failed to get current tag for repo: %w", err)
 	}
@@ -70,7 +73,7 @@ func Version(opts Options) (string, error) {
 		return "", fmt.Errorf("could not get next tag: '%s': %w", tag, err)
 	}
 
-	if opts.Json {
+	if opts.JSON {
 		return jsonOutput(result, opts)
 	}
 
@@ -128,8 +131,9 @@ func nextVersion(
 }
 
 func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Version, error) {
-	suffix := ""
-	if prerelease != "" {
+	var suffix string
+	switch {
+	case prerelease != "":
 		// Check if the suffix already contains a version number, if it does assume the user wants to explicitly set the version so use that
 		splitPreRelease := strings.Split(prerelease, ".")
 		if len(splitPreRelease) > 1 {
@@ -145,9 +149,9 @@ func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Ve
 		if preSuffix == prerelease {
 			suffix = current.Prerelease()
 		}
-	} else if current.Prerelease() != "" {
+	case current.Prerelease() != "":
 		suffix = current.Prerelease()
-	} else {
+	default:
 		return *current, fmt.Errorf(
 			"--prerelease suffix is required to calculate next pre-release version as suffix could not be determined from current version: %s",
 			current.String(),
@@ -186,7 +190,7 @@ func getCurrentVersion(tag, prefix string) (*semver.Version, error) {
 	var current *semver.Version
 	var err error
 	if tag == "" {
-		current, err = semver.NewVersion(strings.TrimPrefix("0.0.0", prefix))
+		current, err = semver.NewVersion("0.0.0")
 	} else {
 		current, err = semver.NewVersion(strings.TrimPrefix(tag, prefix))
 	}
@@ -198,7 +202,7 @@ func findNextWithGitLog(
 	tag string,
 	opts Options,
 ) (semver.Version, error) {
-	log, err := git.Changelog(tag, opts.Directories)
+	log, err := git.Changelog(opts.Ctx, tag, opts.Directories)
 	if err != nil {
 		return semver.Version{}, fmt.Errorf("failed to get changelog: %w", err)
 	}

@@ -1,6 +1,8 @@
+// Package git provides git operations for version management.
 package git
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -28,31 +30,25 @@ const (
 
 // copied from goreleaser
 
-// IsRepo returns true if current folder is a git repository
-func IsRepo() bool {
-	out, err := run("rev-parse", "--is-inside-work-tree")
-	return err == nil && strings.TrimSpace(out) == "true"
-}
-
-func Root() string {
-	out, _ := run("rev-parse", "--show-toplevel")
+func Root(ctx context.Context) string {
+	out, _ := run(ctx, "rev-parse", "--show-toplevel")
 	return strings.TrimSpace(out)
 }
 
-func getAllTags(args ...string) ([]string, error) {
-	tags, err := run(append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
+func getAllTags(ctx context.Context, args ...string) ([]string, error) {
+	tags, err := run(ctx, append([]string{"-c", "versionsort.suffix=-", "tag", "--sort=-version:refname"}, args...)...)
 	if err != nil {
 		return nil, err
 	}
 	return strings.Split(tags, "\n"), nil
 }
 
-func DescribeTag(tagMode string, pattern string) (string, error) {
+func DescribeTag(ctx context.Context, tagMode string, pattern string) (string, error) {
 	args := []string{}
 	if tagMode == TagModeCurrent {
 		args = []string{"--merged"}
 	}
-	tags, err := getAllTags(args...)
+	tags, err := getAllTags(ctx, args...)
 	if err != nil {
 		return "", err
 	}
@@ -76,21 +72,20 @@ func DescribeTag(tagMode string, pattern string) (string, error) {
 	return "", fmt.Errorf("no tags match '%s'", pattern)
 }
 
-func Changelog(tag string, dirs []string) ([]Commit, error) {
+func Changelog(ctx context.Context, tag string, dirs []string) ([]Commit, error) {
 	if tag == "" {
-		return gitLog(dirs, "HEAD")
-	} else {
-		return gitLog(dirs, fmt.Sprintf("tags/%s..HEAD", tag))
+		return gitLog(ctx, dirs, "HEAD")
 	}
+	return gitLog(ctx, dirs, fmt.Sprintf("tags/%s..HEAD", tag))
 }
 
-func run(args ...string) (string, error) {
+func run(ctx context.Context, args ...string) (string, error) {
 	extraArgs := []string{
 		"-c", "log.showSignature=false",
 	}
 	args = append(extraArgs, args...)
 	/* #nosec */
-	cmd := exec.Command("git", args...)
+	cmd := exec.CommandContext(ctx, "git", args...)
 	bts, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.New(string(bts))
@@ -98,19 +93,19 @@ func run(args ...string) (string, error) {
 	return string(bts), nil
 }
 
-func gitLog(dirs []string, refs ...string) ([]Commit, error) {
+func gitLog(ctx context.Context, dirs []string, refs ...string) ([]Commit, error) {
 	args := []string{"log", "--no-decorate", "--no-color", `--format=%H:%B<svu-commit-end>`}
 	args = append(args, refs...)
 	if len(dirs) > 0 {
 		args = append(args, "--")
 		args = append(args, dirs...)
 	}
-	s, err := run(args...)
+	s, err := run(ctx, args...)
 	if err != nil {
 		return nil, err
 	}
 	var result []Commit
-	for _, commit := range strings.Split(s, "<svu-commit-end>") {
+	for commit := range strings.SplitSeq(s, "<svu-commit-end>") {
 		commit = strings.TrimSpace(commit)
 		if commit == "" { // accounts for the last split, which will be an empty line
 			continue

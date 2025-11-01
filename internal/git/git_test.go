@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"os"
 	"path"
 	"testing"
@@ -8,19 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-func TestIsRepo(t *testing.T) {
-	t.Run("is not a repo", func(t *testing.T) {
-		tempdir(t)
-		require.False(t, IsRepo()) // should not be arepo
-	})
-
-	t.Run("is a repo", func(t *testing.T) {
-		tempdir(t)
-		gitInit(t)
-		require.True(t, IsRepo()) // should be arepo
-	})
-}
 
 func TestDescribeTag(t *testing.T) {
 	setup := func(tb testing.TB) {
@@ -45,21 +33,21 @@ func TestDescribeTag(t *testing.T) {
 	}
 	t.Run(TagModeCurrent, func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag(TagModeCurrent, "")
+		tag, err := DescribeTag(t.Context(), TagModeCurrent, "")
 		require.NoError(t, err)
 		require.Equal(t, "v1.2.4", tag)
 	})
 
 	t.Run(TagModeAll, func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag(TagModeAll, "")
+		tag, err := DescribeTag(t.Context(), TagModeAll, "")
 		require.NoError(t, err)
 		require.Equal(t, "v1.2.5", tag)
 	})
 
 	t.Run("pattern", func(t *testing.T) {
 		setup(t)
-		tag, err := DescribeTag(TagModeCurrent, "pattern-*")
+		tag, err := DescribeTag(t.Context(), TagModeCurrent, "pattern-*")
 		require.NoError(t, err)
 		require.Equal(t, "pattern-1.2.3", tag)
 	})
@@ -78,7 +66,7 @@ func TestChangelog(t *testing.T) {
 	} {
 		gitCommit(t, msg)
 	}
-	log, err := Changelog("v1.2.3", nil)
+	log, err := Changelog(t.Context(), "v1.2.3", nil)
 	require.NoError(t, err)
 	for _, title := range []string{
 		"chore: foobar",
@@ -110,7 +98,7 @@ func requireLogNotContains(tb testing.TB, log []Commit, title string) {
 
 func TestChangelogWithDirectory(t *testing.T) {
 	tempDir := tempdir(t)
-	localDir := dir(tempDir, t)
+	localDir := dir(t, tempDir)
 	file := tempfile(t, localDir)
 	gitInit(t)
 	gitCommit(t, "chore: foobar")
@@ -119,7 +107,7 @@ func TestChangelogWithDirectory(t *testing.T) {
 	gitCommit(t, "feat: foobar")
 	gitAdd(t, file)
 	gitCommit(t, "chore: filtered dir")
-	log, err := Changelog("v1.2.3", []string{localDir})
+	log, err := Changelog(t.Context(), "v1.2.3", []string{localDir})
 	require.NoError(t, err)
 
 	requireLogContains(t, log, "chore: filtered dir")
@@ -127,48 +115,51 @@ func TestChangelogWithDirectory(t *testing.T) {
 }
 
 func switchToBranch(tb testing.TB, branch string) {
-	_, err := fakeGitRun("switch", branch)
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "switch", branch)
 	require.NoError(tb, err)
 }
 
 func createBranch(tb testing.TB, branch string) {
-	_, err := fakeGitRun("switch", "-c", branch)
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "switch", "-c", branch)
 	require.NoError(tb, err)
 }
 
 func gitTag(tb testing.TB, tag string) {
-	_, err := fakeGitRun("tag", tag)
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "tag", tag)
 	require.NoError(tb, err)
 }
 
 func gitCommit(tb testing.TB, msg string) {
-	_, err := fakeGitRun("commit", "--allow-empty", "-am", msg)
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "commit", "--allow-empty", "-am", msg)
 	require.NoError(tb, err)
 }
 
 func gitAdd(tb testing.TB, path string) {
-	_, err := fakeGitRun("add", path)
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "add", path)
 	require.NoError(tb, err)
 }
 
 func gitInit(tb testing.TB) {
-	_, err := fakeGitRun("init")
+	tb.Helper()
+	_, err := fakeGitRun(tb.Context(), "init")
 	require.NoError(tb, err)
 }
 
 func tempdir(tb testing.TB) string {
-	previous, err := os.Getwd()
-	require.NoError(tb, err)
-	tb.Cleanup(func() {
-		require.NoError(tb, os.Chdir(previous))
-	})
+	tb.Helper()
 	dir := tb.TempDir()
-	require.NoError(tb, os.Chdir(dir))
+	tb.Chdir(dir)
 	tb.Logf("cd into %s", dir)
 	return dir
 }
 
-func dir(tempDir string, tb testing.TB) string {
+func dir(tb testing.TB, tempDir string) string {
+	tb.Helper()
 	createdDir := path.Join(tempDir, "a-folder")
 	err := os.Mkdir(createdDir, 0o755)
 	require.NoError(tb, err)
@@ -176,6 +167,7 @@ func dir(tempDir string, tb testing.TB) string {
 }
 
 func tempfile(tb testing.TB, dir string) string {
+	tb.Helper()
 	d1 := []byte("hello\ngo\n")
 	file := path.Join(dir, "a-file.txt")
 	err := os.WriteFile(file, d1, 0o644)
@@ -183,7 +175,7 @@ func tempfile(tb testing.TB, dir string) string {
 	return file
 }
 
-func fakeGitRun(args ...string) (string, error) {
+func fakeGitRun(ctx context.Context, args ...string) (string, error) {
 	allArgs := []string{
 		"-c", "user.name='svu'",
 		"-c", "user.email='svu@example.com'",
@@ -192,5 +184,5 @@ func fakeGitRun(args ...string) (string, error) {
 		"-c", "log.showSignature=false",
 	}
 	allArgs = append(allArgs, args...)
-	return run(allArgs...)
+	return run(ctx, allArgs...)
 }

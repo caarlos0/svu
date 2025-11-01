@@ -30,7 +30,7 @@ func TestIsBreaking(t *testing.T) {
 		{Title: "docs: BREAKING_CHANGE: foo"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isBreaking(commit)) // should NOT be a major change
+			require.False(t, isBreaking(commit)) // should NOT be a major change
 		})
 	}
 }
@@ -55,7 +55,7 @@ func TestIsFeature(t *testing.T) {
 		{Title: "refactor: foo bar"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isFeature(commit)) // should NOT be a minor change
+			require.False(t, isFeature(commit)) // should NOT be a minor change
 		})
 	}
 }
@@ -76,7 +76,7 @@ func TestIsPatch(t *testing.T) {
 		{Title: "invalid commit"},
 	} {
 		t.Run(commit.String(), func(t *testing.T) {
-			require.True(t, !isPatch(commit)) // should NOT be a patch change
+			require.False(t, isPatch(commit)) // should NOT be a patch change
 		})
 	}
 }
@@ -88,17 +88,17 @@ func TestFindNext(t *testing.T) {
 	version2 := semver.MustParse("v2.4.12")
 	version3 := semver.MustParse("v3.4.5-beta34+ads")
 	for expected, next := range map[string]semver.Version{
-		"0.4.5": findNext(version0a, []git.Commit{{Title: "chore: should do nothing"}}, Options{}),
-		"0.4.6": findNext(version0a, []git.Commit{{Title: "fix: inc patch"}}, Options{}),
-		"0.5.0": findNext(version0a, []git.Commit{{Title: "feat: inc minor"}}, Options{}),
-		"1.0.0": findNext(version0b, []git.Commit{{Title: "feat!: inc minor"}}, Options{}),
-		"0.6.0": findNext(version0b, []git.Commit{{Title: "feat!: inc minor"}}, Options{KeepV0: true}),
-		"1.2.3": findNext(version1, []git.Commit{{Title: "chore: should do nothing"}}, Options{}),
-		"1.2.4": findNext(version1, []git.Commit{{Title: "chore: always"}}, Options{Always: true}),
-		"1.3.0": findNext(version1, []git.Commit{{Title: "feat: inc major"}}, Options{}),
-		"2.0.0": findNext(version1, []git.Commit{{Title: "chore!: hashbang incs major"}}, Options{}),
-		"3.0.0": findNext(version2, []git.Commit{{Title: "feat: something", Body: "BREAKING CHANGE: increases major"}}, Options{}),
-		"3.5.0": findNext(version3, []git.Commit{{Title: "feat: inc major"}}, Options{}),
+		"0.4.5": findNext(version0a, []git.Commit{{Title: "chore: should do nothing"}}, Options{Ctx: t.Context()}),
+		"0.4.6": findNext(version0a, []git.Commit{{Title: "fix: inc patch"}}, Options{Ctx: t.Context()}),
+		"0.5.0": findNext(version0a, []git.Commit{{Title: "feat: inc minor"}}, Options{Ctx: t.Context()}),
+		"1.0.0": findNext(version0b, []git.Commit{{Title: "feat!: inc minor"}}, Options{Ctx: t.Context()}),
+		"0.6.0": findNext(version0b, []git.Commit{{Title: "feat!: inc minor"}}, Options{Ctx: t.Context(), KeepV0: true}),
+		"1.2.3": findNext(version1, []git.Commit{{Title: "chore: should do nothing"}}, Options{Ctx: t.Context()}),
+		"1.2.4": findNext(version1, []git.Commit{{Title: "chore: always"}}, Options{Ctx: t.Context(), Always: true}),
+		"1.3.0": findNext(version1, []git.Commit{{Title: "feat: inc major"}}, Options{Ctx: t.Context()}),
+		"2.0.0": findNext(version1, []git.Commit{{Title: "chore!: hashbang incs major"}}, Options{Ctx: t.Context()}),
+		"3.0.0": findNext(version2, []git.Commit{{Title: "feat: something", Body: "BREAKING CHANGE: increases major"}}, Options{Ctx: t.Context()}),
+		"3.5.0": findNext(version3, []git.Commit{{Title: "feat: inc major"}}, Options{Ctx: t.Context()}),
 	} {
 		t.Run(expected, func(t *testing.T) {
 			require.Equal(t, expected, next.String())
@@ -111,6 +111,7 @@ func TestCmd(t *testing.T) {
 	t.Run("current", func(t *testing.T) {
 		t.Run("version has meta", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Current,
 			})
 			require.NoError(t, err)
@@ -118,6 +119,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("version is clean", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("v1.2.3"), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Current,
 			})
 			require.NoError(t, err)
@@ -128,6 +130,7 @@ func TestCmd(t *testing.T) {
 	t.Run("minor", func(t *testing.T) {
 		t.Run("clean", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Minor,
 			})
 			require.NoError(t, err)
@@ -135,6 +138,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("metadata", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:      t.Context(),
 				Action:   Minor,
 				Metadata: "124",
 			})
@@ -143,6 +147,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("prerelease", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Minor,
 				PreRelease: "alpha.1",
 			})
@@ -151,6 +156,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("all", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Minor,
 				PreRelease: "alpha.2",
 				Metadata:   "125",
@@ -163,6 +169,7 @@ func TestCmd(t *testing.T) {
 	t.Run("patch", func(t *testing.T) {
 		t.Run("clean", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Patch,
 			})
 			require.NoError(t, err)
@@ -170,6 +177,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("previous had meta", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Patch,
 			})
 			require.NoError(t, err)
@@ -177,6 +185,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("previous had meta + always", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Patch,
 				Always: true,
 			})
@@ -185,6 +194,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("previous had meta + always, add meta", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
+				Ctx:        t.Context(),
 				Action:     Patch,
 				Always:     true,
 				PreRelease: "alpha.2",
@@ -195,6 +205,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("previous had meta, change it", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
+				Ctx:        t.Context(),
 				Action:     Patch,
 				PreRelease: "alpha.2",
 				Metadata:   "10",
@@ -204,6 +215,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("metadata", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+				Ctx:      t.Context(),
 				Action:   Patch,
 				Metadata: "124",
 			})
@@ -212,6 +224,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("prerelease", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Patch,
 				PreRelease: "alpha.1",
 			})
@@ -220,6 +233,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("all meta", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Patch,
 				Metadata:   "125",
 				PreRelease: "alpha.2",
@@ -232,6 +246,7 @@ func TestCmd(t *testing.T) {
 	t.Run("major", func(t *testing.T) {
 		t.Run("no meta", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:    t.Context(),
 				Action: Major,
 			})
 			require.NoError(t, err)
@@ -239,6 +254,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("metadata", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:      t.Context(),
 				Action:   Major,
 				Metadata: "124",
 			})
@@ -247,6 +263,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("prerelease", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Major,
 				PreRelease: "alpha.1",
 			})
@@ -255,6 +272,7 @@ func TestCmd(t *testing.T) {
 		})
 		t.Run("all meta", func(t *testing.T) {
 			v, err := nextVersion(ver(), "v1.2.3", Options{
+				Ctx:        t.Context(),
 				Action:     Major,
 				PreRelease: "alpha.2",
 				Metadata:   "125",
@@ -266,12 +284,12 @@ func TestCmd(t *testing.T) {
 
 	t.Run("errors", func(t *testing.T) {
 		t.Run("invalid build", func(t *testing.T) {
-			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{})
-			require.True(t, err != nil)
+			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{Ctx: t.Context()})
+			require.Error(t, err)
 		})
 		t.Run("invalid prerelease", func(t *testing.T) {
-			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{})
-			require.True(t, err != nil)
+			_, err := nextVersion(semver.MustParse("1.2.3"), "v1.2.3", Options{Ctx: t.Context()})
+			require.Error(t, err)
 		})
 	})
 }

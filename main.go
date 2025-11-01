@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ func main() {
 	var opts svu.Options
 
 	runFunc := func(cmd *cobra.Command) error {
+		opts.Ctx = cmd.Context()
 		version, err := svu.Version(opts)
 		if err != nil {
 			return err
@@ -67,7 +69,7 @@ func main() {
 		Use:     "prerelease",
 		Aliases: []string{"pr"},
 		Short:   "Increases the build portion of the prerelease",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.PreRelease
 			return runFunc(cmd)
 		},
@@ -76,7 +78,7 @@ func main() {
 		Use:     "next",
 		Aliases: []string{"n"},
 		Short:   "Next version based on git history",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.Next
 			return runFunc(cmd)
 		},
@@ -84,7 +86,7 @@ func main() {
 	majorCmd := &cobra.Command{
 		Use:   "major",
 		Short: "New major release",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.Major
 			return runFunc(cmd)
 		},
@@ -93,7 +95,7 @@ func main() {
 		Use:     "minor",
 		Short:   "New minor release",
 		Aliases: []string{"m"},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.Minor
 			return runFunc(cmd)
 		},
@@ -102,7 +104,7 @@ func main() {
 		Use:     "patch",
 		Short:   "New patch release",
 		Aliases: []string{"p"},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.Patch
 			return runFunc(cmd)
 		},
@@ -111,7 +113,7 @@ func main() {
 		Use:     "current",
 		Short:   "Current version",
 		Aliases: []string{"c"},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			opts.Action = svu.Current
 			return runFunc(cmd)
 		},
@@ -120,7 +122,7 @@ func main() {
 		Use:     "init",
 		Short:   "Creates a svu configuration file",
 		Aliases: []string{"i"},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return os.WriteFile(".svu.yaml", exampleConfig, 0o644)
 		},
 	}
@@ -140,7 +142,7 @@ func main() {
 		prereleaseCmd,
 	} {
 		// init does not share these flags.
-		cmd.Flags().BoolVar(&opts.Json, "json", false, "output version as json")
+		cmd.Flags().BoolVar(&opts.JSON, "json", false, "output version as json")
 		cmd.Flags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 		cmd.Flags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
 		cmd.Flags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
@@ -161,7 +163,7 @@ func main() {
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("svu")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath(git.Root())
+	viper.AddConfigPath(git.Root(context.Background()))
 	viper.AddConfigPath(config)
 	viper.AddConfigPath(home)
 	viper.SetConfigName(".svu")
@@ -189,7 +191,7 @@ func presetRequiredFlags(cmd *cobra.Command) {
 	}
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	version   = ""
 	commit    = ""
@@ -230,7 +232,7 @@ func buildVersion(version, commit, date, builtBy string) goversion.Info {
 
 func paddingLeft(in string) string {
 	var out []string
-	for _, line := range strings.Split(in, "\n") {
+	for line := range strings.SplitSeq(in, "\n") {
 		out = append(out, "  "+line)
 	}
 	return strings.Join(out, "\n")
