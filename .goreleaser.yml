@@ -8,6 +8,7 @@ metadata:
   description: Semantic Version Utility
   homepage: "https://github.com/caarlos0/svu"
   license: MIT
+  mod_timestamp: "{{ .CommitDate }}"
   maintainers:
     - "Carlos Alexandro Becker <carlos at becker dot software>"
 
@@ -97,6 +98,12 @@ homebrew_casks:
       bash: "completions/{{ .ProjectName }}.bash"
       zsh: "completions/{{ .ProjectName }}.zsh"
       fish: "completions/{{ .ProjectName }}.fish"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/svu"]
+          end
 
 nfpms:
   - file_name_template: "{{ .ConventionalFileName }}"
