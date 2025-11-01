@@ -140,6 +140,7 @@ func main() {
 		prereleaseCmd,
 	} {
 		// init does not share these flags.
+		cmd.Flags().BoolVar(&opts.Json, "json", false, "output version as json")
 		cmd.Flags().StringVar(&opts.Pattern, "tag.pattern", "", "ignore tags that do not match the given pattern")
 		cmd.Flags().StringVar(&opts.Prefix, "tag.prefix", "v", "sets a tag custom prefix")
 		cmd.Flags().StringVar(&opts.TagMode, "tag.mode", git.TagModeAll, "determine if it should look for tags in all branches, or just the current one")
