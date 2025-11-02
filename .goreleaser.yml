@@ -8,7 +8,6 @@ metadata:
   description: Semantic Version Utility
   homepage: "https://github.com/caarlos0/svu"
   license: MIT
-  mod_timestamp: "{{ .CommitDate }}"
   maintainers:
     - "Carlos Alexandro Becker <carlos at becker dot software>"
 
