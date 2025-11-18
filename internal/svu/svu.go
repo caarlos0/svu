@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,7 +33,7 @@ var (
 )
 
 type Options struct {
-	Ctx         context.Context
+	Ctx          context.Context
 	Action       Action
 	Pattern      string
 	Prefix       string
@@ -46,7 +45,7 @@ type Options struct {
 	Directories  []string
 	Always       bool
 	KeepV0       bool
-	JSON        bool
+	JSON         bool
 }
 
 type VersionInfo struct {
