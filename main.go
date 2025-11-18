@@ -175,7 +175,7 @@ func main() {
 		viper.AutomaticEnv()
 		viper.SetEnvPrefix("svu")
 		viper.AddConfigPath(cfgPath)
-	viper.AddConfigPath(git.Root(context.Background()))
+		viper.AddConfigPath(git.Root(context.Background()))
 		viper.AddConfigPath(config)
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
@@ -203,12 +203,11 @@ func presetRequiredFlags(cmd *cobra.Command) {
 			case "log.directory":
 				dirs := viper.GetStringSlice(f.Name)
 				for _, dir := range dirs {
-					cmd.Flags().Set(f.Name, dir)
+					_ = cmd.Flags().Set(f.Name, dir)
 				}
 			default:
-				cmd.Flags().Set(f.Name, viper.GetString(f.Name))
+				_ = cmd.Flags().Set(f.Name, viper.GetString(f.Name))
 			}
-
 		}
 	})
 	for _, scmd := range cmd.Commands() {
