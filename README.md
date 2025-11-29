@@ -71,7 +71,7 @@ Names are the same as the flags themselves.
   <summary>macOS</summary>
 
 ```bash
-brew install caarlos0/tap/svu
+brew install --cask caarlos0/tap/svu
 ```
 
 </details>
