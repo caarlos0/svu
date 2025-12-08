@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/go-version v0.2.2
 	github.com/charmbracelet/fang v0.4.4
 	github.com/gobwas/glob v0.2.3
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
