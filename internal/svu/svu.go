@@ -33,17 +33,19 @@ var (
 )
 
 type Options struct {
-	Ctx         context.Context
-	Action      Action
-	Pattern     string
-	Prefix      string
-	PreRelease  string
-	Metadata    string
-	Directories []string
-	TagMode     string
-	Always      bool
-	KeepV0      bool
-	JSON        bool
+	Ctx          context.Context
+	Action       Action
+	Pattern      string
+	Prefix       string
+	PrefixOutput string
+	PreRelease   string
+	Metadata     string
+	TagMode      string
+	ConfigRoot   string
+	Directories  []string
+	Always       bool
+	KeepV0       bool
+	JSON         bool
 }
 
 type VersionInfo struct {

@@ -1,0 +1,16 @@
+# svu configuration.
+#
+# https://github.com/caarlos0/svu
+verbose: false
+tag:
+  pattern: "project-name/v*"
+  prefix: "projet-name/v"
+  #if you want the output to be without the prefix, set output to "" it defaults to tag.prefix
+  #output: ""
+  mode: all
+log:
+  directory:
+    - "project-name"
+metadata: ""
+always: false
+v0: false

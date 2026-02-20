@@ -2,11 +2,13 @@
 #
 # https://github.com/caarlos0/svu
 verbose: false
-tag.pattern: ""
-tag.prefix: "v"
-tag.mode: all
-log.directory:
-  - "."
+tag:
+  pattern: ""
+  prefix: "v"
+  mode: all
+log:
+  directory:
+    - "."
 metadata: ""
 always: false
 v0: false
