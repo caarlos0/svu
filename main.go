@@ -10,10 +10,10 @@ import (
 	"path"
 	"strings"
 
+	"charm.land/fang/v2"
 	goversion "github.com/caarlos0/go-version"
 	"github.com/caarlos0/svu/v3/internal/git"
 	"github.com/caarlos0/svu/v3/internal/svu"
-	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
