@@ -3,7 +3,7 @@ module github.com/caarlos0/svu/v3
 go 1.25.3
 
 require (
-	charm.land/fang/v2 v2.0.0-20260228140200-f3b5a0bf202d
+	charm.land/fang/v2 v2.0.1
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/caarlos0/go-version v0.2.2
 	github.com/gobwas/glob v0.2.3
@@ -14,7 +14,7 @@ require (
 )
 
 require (
-	charm.land/lipgloss/v2 v2.0.0 // indirect
+	charm.land/lipgloss/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8 // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
