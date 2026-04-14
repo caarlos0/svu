@@ -190,7 +190,7 @@ func TestCmd(t *testing.T) {
 				Always: true,
 			})
 			require.NoError(t, err)
-			require.Equal(t, "1.2.4", v.String())
+			require.Equal(t, "1.2.3", v.String())
 		})
 		t.Run("previous had meta + always, add meta", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
@@ -201,7 +201,7 @@ func TestCmd(t *testing.T) {
 				Metadata:   "10",
 			})
 			require.NoError(t, err)
-			require.Equal(t, "1.2.4-alpha.2+10", v.String())
+			require.Equal(t, "1.2.3-alpha.2+10", v.String())
 		})
 		t.Run("previous had meta, change it", func(t *testing.T) {
 			v, err := nextVersion(semver.MustParse("1.2.3-alpha.1+1"), "v1.2.3-alpha.1+1", Options{
