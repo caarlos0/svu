@@ -91,12 +91,6 @@ func nextVersion(
 		return *current, nil
 	}
 
-	if opts.Always {
-		c, _ := current.SetMetadata("")
-		c, _ = c.SetPrerelease("")
-		current = &c
-	}
-
 	var result semver.Version
 	var err error
 	switch opts.Action {
@@ -111,6 +105,12 @@ func nextVersion(
 	}
 	if err != nil {
 		return result, err
+	}
+
+	if opts.Always {
+		c, _ := current.SetMetadata("")
+		c, _ = c.SetPrerelease("")
+		current = &c
 	}
 
 	if opts.Action == PreRelease {
