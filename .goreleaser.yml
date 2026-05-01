@@ -123,6 +123,9 @@ nfpms:
 checksum:
   name_template: "checksums.txt"
 
+sboms:
+  - artifacts: archive
+
 signs:
   - cmd: cosign
     signature: "${artifact}.sigstore.json"
