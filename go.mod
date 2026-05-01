@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	charm.land/fang/v2 v2.0.1
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/caarlos0/go-version v0.2.2
 	github.com/gobwas/glob v0.2.3
 	github.com/spf13/cobra v1.10.2
