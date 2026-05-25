@@ -412,3 +412,29 @@ func Test_nextPreRelease(t *testing.T) {
 		})
 	}
 }
+
+func TestNextVersion_suffixStripping(t *testing.T) {
+	tests := []struct {
+		name    string
+		current string
+		action  Action
+		want    string
+	}{
+		{"prerelease with patch bump strips suffix", "1.2.3-rc1", Patch, "1.2.3"},
+		{"prerelease with minor bump strips suffix", "1.2.3-rc1", Minor, "1.3.0"},
+		{"metadata with patch bump strips suffix", "1.2.3+meta", Patch, "1.2.4"},
+		{"metadata with minor bump strips suffix", "1.2.3+meta", Minor, "1.3.0"},
+		{"both with patch bump strips suffix", "1.2.3-rc1+meta", Patch, "1.2.3"},
+		{"both with minor bump strips suffix", "1.2.3-rc1+meta", Minor, "1.3.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v, err := nextVersion(semver.MustParse(tt.current), "v"+tt.current, Options{
+				Ctx:    t.Context(),
+				Action: tt.action,
+			})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, v.String())
+		})
+	}
+}
