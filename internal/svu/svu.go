@@ -79,7 +79,7 @@ func Version(opts Options) (string, error) {
 		return jsonOutput(result, opts)
 	}
 
-	return opts.Prefix + result.String(), nil
+	return opts.PrefixOutput + result.String(), nil
 }
 
 func nextVersion(
@@ -270,7 +270,7 @@ func findNext(current *semver.Version, changes []git.Commit, opts Options) semve
 func jsonOutput(v semver.Version, opts Options) (string, error) {
 	info := VersionInfo{
 		Prefix:     opts.Prefix,
-		Version:    opts.Prefix + v.String(),
+		Version:    opts.PrefixOutput + v.String(),
 		Major:      v.Major(),
 		Minor:      v.Minor(),
 		Patch:      v.Patch(),
