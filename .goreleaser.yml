@@ -42,7 +42,7 @@ builds:
 universal_binaries:
   - replace: true
 
-furies:
+gemfury:
   - account: caarlos0
 
 archives:
@@ -91,8 +91,6 @@ homebrew_casks:
       owner: caarlos0
       name: homebrew-tap
       token: "{{ .Env.GH_PAT }}"
-    url:
-      verified: "github.com/caarlos0/{{ .ProjectName }}"
     manpages:
       - "manpages/{{ .ProjectName }}.1.gz"
     completions:
@@ -101,9 +99,9 @@ homebrew_casks:
       fish: "completions/{{ .ProjectName }}.fish"
     hooks:
       post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/svu"]
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/svu"]
           end
 
 nfpms:
