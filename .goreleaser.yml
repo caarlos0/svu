@@ -60,6 +60,8 @@ nix:
       owner: caarlos0
       name: nur
       token: "{{ .Env.GH_PAT }}"
+    commit_author:
+      use_github_app_token: true
     extra_install: |-
       installShellCompletion ./completions/*
       installManPage ./manpages/{{.ProjectName}}.1.gz
@@ -91,6 +93,8 @@ homebrew_casks:
       owner: caarlos0
       name: homebrew-tap
       token: "{{ .Env.GH_PAT }}"
+    commit_author:
+      use_github_app_token: true
     manpages:
       - "manpages/{{ .ProjectName }}.1.gz"
     completions:
