@@ -147,7 +147,7 @@ func nextPreRelease(current, next *semver.Version, prerelease string) (semver.Ve
 		suffix = prerelease
 
 		// Check if the prerelease suffix is the same as the current prerelease
-		preSuffix := strings.Split(current.Prerelease(), ".")[0]
+		preSuffix, _, _ := strings.Cut(current.Prerelease(), ".")
 		if preSuffix == prerelease {
 			suffix = current.Prerelease()
 		}
